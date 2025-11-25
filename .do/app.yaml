@@ -1,0 +1,15 @@
+name: video-shaper
+static_sites:
+  - name: web
+    github:
+      repo: samma/video-shaper
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    output_dir: build
+    environment_slug: node-js
+    node_version: "18"
+    routes:
+      - path: /
+    catchall_document: index.html
+
