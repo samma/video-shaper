@@ -62,8 +62,10 @@ export class FFmpegService {
 	 * Trim a video file to a specific time range
 	 */
 	async trimVideo(file: File, options: TrimOptions): Promise<Blob> {
+		// Ensure FFmpeg is loaded - re-initialize if needed
 		if (this.loadStatus !== 'loaded') {
-			throw new Error('FFmpeg is not loaded. Call initialize() first.');
+			console.log('[FFmpeg] FFmpeg not loaded, re-initializing...');
+			await this.initialize();
 		}
 
 		// Reset cancellation flag
@@ -107,11 +109,11 @@ export class FFmpegService {
 				// -crf: Constant Rate Factor (18-28, lower = higher quality)
 				// -preset ultrafast: fastest encoding (lowest memory usage)
 				// -tune fastdecode: optimize for faster decoding (lower memory)
-				// -profile:v baseline: baseline profile (lower memory than high/main)
-				// -level 3.0: lower level = less memory requirements
 				// -threads 1: single thread (less memory overhead)
 				// -c:a copy: copy audio without re-encoding
 				// -movflags +faststart: optimize for web playback
+				// Note: Removed -profile:v and -level restrictions to support high-resolution videos
+				// FFmpeg will auto-detect appropriate profile/level based on input
 				command.push(
 					'-c:v',
 					'libx264',
@@ -121,10 +123,6 @@ export class FFmpegService {
 					'ultrafast',
 					'-tune',
 					'fastdecode',
-					'-profile:v',
-					'baseline',
-					'-level',
-					'3.0',
 					'-threads',
 					'1',
 					'-c:a',
@@ -148,9 +146,15 @@ export class FFmpegService {
 				throw new Error('Operation cancelled');
 			}
 
-			await this.ffmpeg.exec(command);
+			// Execute FFmpeg command
+			// Note: We can't easily interrupt exec() mid-operation, but the cancellation
+			// flag will prevent further operations and cleanup will happen in catch block
+			const execPromise = this.ffmpeg.exec(command);
+			
+			// If cancelled during execution, we'll handle it in the catch block
+			await execPromise;
 
-			// Check if cancelled after execution
+			// Check if cancelled after execution completes
 			if (this.isCancelled) {
 				try {
 					await this.ffmpeg.deleteFile(inputName);
@@ -235,16 +239,12 @@ export class FFmpegService {
 
 	/**
 	 * Cancel the current video processing operation
+	 * Note: We don't call terminate() as it permanently destroys the FFmpeg instance.
+	 * Instead, we rely on the cancellation flag which is checked at key points.
 	 */
 	cancel(): void {
 		this.isCancelled = true;
-		try {
-			// Terminate FFmpeg execution
-			this.ffmpeg.terminate();
-		} catch (error) {
-			// Ignore errors if FFmpeg is not running
-			console.log('[FFmpeg] Cancel requested');
-		}
+		console.log('[FFmpeg] Cancel requested - operation will stop at next checkpoint');
 	}
 
 	/**
