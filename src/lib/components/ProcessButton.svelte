@@ -10,7 +10,7 @@
 <button
 	on:click={onProcess}
 	disabled={buttonDisabled}
-	class="w-full py-3 px-6 rounded-lg font-semibold text-white transition-all
+	class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white transition-all
 		{processing
 		? 'bg-blue-400 cursor-wait'
 		: buttonDisabled
@@ -19,7 +19,7 @@
 >
 	{#if processing}
 		<span class="flex items-center justify-center gap-2">
-			<svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+			<svg class="animate-spin h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
 				<circle
 					class="opacity-25"
 					cx="12"
@@ -35,7 +35,7 @@
 					d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 				></path>
 			</svg>
-			Processing... {Math.round(progress * 100)}%
+			<span>Processing... {Math.round(progress * 100)}%</span>
 		</span>
 	{:else}
 		Trim Video

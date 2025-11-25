@@ -91,18 +91,18 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50 p-4">
-	<div class="max-w-4xl mx-auto py-8">
-		<h1 class="text-4xl font-bold text-center text-gray-900 mb-8">
+<div class="min-h-screen bg-gray-50 p-3 sm:p-4">
+	<div class="max-w-4xl mx-auto py-4 sm:py-8">
+		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4 sm:mb-8">
 			{title}
 		</h1>
 
-		<div class="bg-white rounded-lg shadow-lg p-8">
+		<div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
 			<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError}>
 				{#if !selectedFile}
 					<FileUpload onFileSelect={handleFileSelect} disabled={processing} />
 				{:else}
-					<div class="space-y-6">
+					<div class="space-y-4 sm:space-y-6">
 						<VideoPreview
 							videoFile={selectedFile}
 							onDurationLoad={handleDurationLoad}
@@ -124,15 +124,15 @@
 						/>
 
 						{#if processingError}
-							<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-								<p class="text-red-800 font-semibold">Error</p>
-								<p class="text-red-600 text-sm">{processingError}</p>
+							<div class="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-center">
+								<p class="text-red-800 font-semibold text-sm sm:text-base">Error</p>
+								<p class="text-red-600 text-xs sm:text-sm mt-1">{processingError}</p>
 							</div>
 						{/if}
 
 						<button
 							on:click={() => (selectedFile = null)}
-							class="w-full py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+							class="w-full py-2 sm:py-2.5 px-4 text-sm sm:text-base border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
 							disabled={processing}
 						>
 							Select Different Video

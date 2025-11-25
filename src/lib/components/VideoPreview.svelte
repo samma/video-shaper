@@ -91,10 +91,16 @@
 		</video>
 	</div>
 
-	<div class="mt-4 text-sm text-gray-600 text-center">
+	<div class="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600 text-center">
 		{#if duration}
-			Duration: {formatTime(duration)} | Current: {formatTime(currentTime)}
-			<span class="text-xs text-gray-400 ml-2">(Space: play/pause, ←→: seek)</span>
+			<div class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+				<span>Duration: {formatTime(duration)}</span>
+				<span class="hidden sm:inline">|</span>
+				<span>Current: {formatTime(currentTime)}</span>
+			</div>
+			<span class="text-[10px] sm:text-xs text-gray-400 mt-1 block">
+				(Space: play/pause, ←→: seek)
+			</span>
 		{:else}
 			Loading video...
 		{/if}
