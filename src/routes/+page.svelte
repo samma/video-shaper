@@ -28,6 +28,10 @@
 	let processingProgress: number = 0;
 	let processingError: string = '';
 
+	// Accordion state
+	let limitationsExpanded: boolean = false;
+	let disclaimerExpanded: boolean = false;
+
 	function handleCancel() {
 		if (ffmpegService) {
 			ffmpegService.cancel();
@@ -180,33 +184,106 @@
 						</div>
 					</div>
 
-					<!-- Limitations Card -->
-					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
-						<h2 class="text-lg sm:text-xl font-semibold text-gray-200 mb-3">Important Limitations</h2>
+					<!-- FAQ Card (Collapsible) -->
+					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
+						<button
+							on:click={() => (limitationsExpanded = !limitationsExpanded)}
+							class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
+							aria-expanded={limitationsExpanded}
+							aria-controls="faq-content"
+						>
+							<h2 class="text-base sm:text-lg font-semibold text-gray-200">Frequently Asked Questions</h2>
+							<svg
+								class="w-5 h-5 text-gray-400 transition-transform {limitationsExpanded ? 'rotate-180' : ''}"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
 						
-						<div class="space-y-2 text-sm sm:text-base text-gray-300">
-							<ul class="list-disc list-inside space-y-2 ml-2">
-								<li>Large videos (>100MB) may cause memory issues, especially with compression</li>
-								<li>Processing is slower than native video editors (3-5x)</li>
-								<li>Very large output files (>20MB) may fail to download due to browser memory limits</li>
-								<li>For best results, trim to segments under 10 seconds when using compression</li>
-								<li>Initial load downloads ~31MB (ffmpeg.wasm) - cached after first visit</li>
-							</ul>
-						</div>
+						{#if limitationsExpanded}
+							<div id="faq-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
+								<div class="space-y-4 text-sm sm:text-base">
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">What video formats are supported?</h3>
+										<p class="text-gray-400">
+											Video Shaper supports common video formats including MP4, WebM, MOV, AVI, and more. 
+											The app uses ffmpeg.wasm which supports most video codecs. For best compatibility, MP4 files are recommended.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Why is processing slow?</h3>
+										<p class="text-gray-400">
+											Video processing runs entirely in your browser using WebAssembly, which is 3-5x slower than native video editors. 
+											This is the trade-off for complete privacy - your videos never leave your device. For faster processing, 
+											trim to shorter segments (under 10 seconds) and avoid compression when possible.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">What are the file size limits?</h3>
+										<p class="text-gray-400">
+											Large videos (>100MB) may cause memory issues, especially with compression enabled. 
+											Very large output files (>20MB) may fail to download due to browser memory limits. 
+											For best results, keep trimmed segments under 10 seconds when using compression, or disable compression for larger files.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Is my video data private?</h3>
+										<p class="text-gray-400">
+											Yes! All processing happens entirely in your browser. Videos never leave your computer and are never uploaded to any server. 
+											The app downloads ffmpeg.wasm (~31MB) on first visit, but this is cached for future use.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Why does compression sometimes fail?</h3>
+										<p class="text-gray-400">
+											Compression requires significant browser memory. Very large videos or high-resolution files (like 4K) can exceed browser memory limits. 
+											If compression fails, try: trimming to a shorter segment, using higher compression (move slider left), or disabling compression entirely. 
+											The app will show helpful error messages if issues occur.
+										</p>
+									</div>
+								</div>
+							</div>
+						{/if}
 					</div>
 
-					<!-- Disclaimer Card -->
-					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
-						<h2 class="text-lg sm:text-xl font-semibold text-gray-200 mb-3">Disclaimer</h2>
+					<!-- Disclaimer Card (Collapsible) -->
+					<div class="mt-3 sm:mt-4 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
+						<button
+							on:click={() => (disclaimerExpanded = !disclaimerExpanded)}
+							class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
+							aria-expanded={disclaimerExpanded}
+							aria-controls="disclaimer-content"
+						>
+							<h2 class="text-base sm:text-lg font-semibold text-gray-200">Disclaimer</h2>
+							<svg
+								class="w-5 h-5 text-gray-400 transition-transform {disclaimerExpanded ? 'rotate-180' : ''}"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
 						
-						<div class="text-xs sm:text-sm text-gray-400 leading-relaxed">
-							<p>
-								This service is provided "as is" without warranty of any kind. 
-								Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
-								Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
-								that may occur during video processing. Use at your own risk.
-							</p>
-						</div>
+						{#if disclaimerExpanded}
+							<div id="disclaimer-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
+								<div class="text-xs sm:text-sm text-gray-400 leading-relaxed">
+									<p>
+										This service is provided "as is" without warranty of any kind. 
+										Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
+										Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
+										that may occur during video processing. Use at your own risk.
+									</p>
+								</div>
+							</div>
+						{/if}
 					</div>
 				{:else}
 					<div class="space-y-4 sm:space-y-6">
