@@ -274,13 +274,58 @@
 						
 						{#if disclaimerExpanded}
 							<div id="disclaimer-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
-								<div class="text-xs sm:text-sm text-gray-400 leading-relaxed">
-									<p>
-										This service is provided "as is" without warranty of any kind. 
-										Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
-										Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
-										that may occur during video processing. Use at your own risk.
-									</p>
+								<div class="text-xs sm:text-sm text-gray-400 leading-relaxed space-y-4">
+									<div>
+										<p>
+											This service is provided "as is" without warranty of any kind. 
+											Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
+											Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
+											that may occur during video processing. Use at your own risk.
+										</p>
+									</div>
+
+									<div class="border-t border-gray-600 pt-4">
+										<h3 class="font-semibold text-gray-300 mb-3">Third-Party Licenses</h3>
+										<p class="mb-3">
+											Video Shaper uses the following open-source libraries and tools. Their respective licenses are listed below:
+										</p>
+										<ul class="space-y-2 ml-4 list-disc">
+											<li>
+												<strong class="text-gray-300">FFmpeg</strong> - Licensed under 
+												<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GPL v3</a> 
+												and <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">LGPL v3</a>. 
+												FFmpeg is used via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">ffmpeg.wasm</a> 
+												(MIT License).
+											</li>
+											<li>
+												<strong class="text-gray-300">Svelte & SvelteKit</strong> - Licensed under 
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+											</li>
+											<li>
+												<strong class="text-gray-300">TailwindCSS</strong> - Licensed under 
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+											</li>
+											<li>
+												<strong class="text-gray-300">Vite</strong> - Licensed under 
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+											</li>
+											<li>
+												<strong class="text-gray-300">TypeScript</strong> - Licensed under 
+												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">Apache License 2.0</a>.
+											</li>
+											<li>
+												<strong class="text-gray-300">Playwright</strong> - Licensed under 
+												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">Apache License 2.0</a>.
+											</li>
+											<li>
+												<strong class="text-gray-300">Vitest</strong> - Licensed under 
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+											</li>
+										</ul>
+										<p class="mt-4 text-gray-500 italic">
+											For complete license information, please refer to the LICENSE files in each library's repository or the node_modules directory.
+										</p>
+									</div>
 								</div>
 							</div>
 						{/if}

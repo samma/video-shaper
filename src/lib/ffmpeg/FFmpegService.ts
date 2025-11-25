@@ -30,9 +30,24 @@ export class FFmpegService {
 			this.loadStatus = 'loading';
 			this.loadProgress = 0;
 
-			// Set up progress logging
+			// Set up progress logging with enhanced error detection
+			let secondPassStarted = false;
 			this.ffmpeg.on('log', ({ message }) => {
 				console.log('[FFmpeg]', message);
+				
+				// Detect second pass start
+				if (message.includes('Starting second pass') || message.includes('moving the moov atom')) {
+					secondPassStarted = true;
+					console.log('[FFmpeg] [DEBUG] Second pass detected - monitoring for issues...');
+				}
+				
+				// Detect abort messages
+				if (message.includes('Aborted') || message.includes('abort')) {
+					console.error('[FFmpeg] [DEBUG] Abort detected in log message:', message);
+					if (secondPassStarted) {
+						console.error('[FFmpeg] [DEBUG] Abort occurred during second pass (faststart moov atom relocation)');
+					}
+				}
 			});
 
 			this.ffmpeg.on('progress', ({ progress, time }) => {
@@ -104,6 +119,15 @@ export class FFmpegService {
 				// Validate CRF value
 				const crfValue = Math.max(18, Math.min(28, options.crf));
 				
+				// Decide if we can use faststart
+				// faststart requires a second pass that reads the entire file into memory
+				// For large files or long segments, this can cause memory issues
+				const inputFileMB = file.size / (1024 * 1024);
+				const trimmedDuration = options.duration;
+				// Skip faststart if: input > 50MB OR trimmed segment > 10 seconds
+				// This avoids the second-pass memory issue for larger compressions
+				const useFaststart = inputFileMB < 50 && trimmedDuration <= 10;
+				
 				// Apply compression with CRF - optimized for memory efficiency
 				// -c:v libx264: use H.264 codec
 				// -crf: Constant Rate Factor (18-28, lower = higher quality)
@@ -111,7 +135,7 @@ export class FFmpegService {
 				// -tune fastdecode: optimize for faster decoding (lower memory)
 				// -threads 1: single thread (less memory overhead)
 				// -c:a copy: copy audio without re-encoding
-				// -movflags +faststart: optimize for web playback
+				// -movflags +faststart: optimize for web playback (only for smaller files)
 				// Note: Removed -profile:v and -level restrictions to support high-resolution videos
 				// FFmpeg will auto-detect appropriate profile/level based on input
 				command.push(
@@ -126,10 +150,15 @@ export class FFmpegService {
 					'-threads',
 					'1',
 					'-c:a',
-					'copy',
-					'-movflags',
-					'+faststart'
+					'copy'
 				);
+				
+				// Only add faststart for smaller files to avoid second-pass memory issues
+				if (useFaststart) {
+					command.push('-movflags', '+faststart');
+				} else {
+					console.log(`[FFmpeg] Skipping faststart to avoid memory issues (input: ${inputFileMB.toFixed(1)}MB, duration: ${trimmedDuration.toFixed(1)}s)`);
+				}
 			} else {
 				// Copy codec (fast, no re-encoding)
 				command.push('-c', 'copy');
@@ -139,6 +168,18 @@ export class FFmpegService {
 			command.push('-y', outputName);
 
 			console.log('[FFmpeg] Executing command:', command.join(' '));
+			console.log('[FFmpeg] [DEBUG] Input file size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+			console.log('[FFmpeg] [DEBUG] Trim duration:', options.duration.toFixed(2), 'seconds');
+			console.log('[FFmpeg] [DEBUG] Compression enabled:', options.compressionEnabled);
+			if (options.compressionEnabled) {
+				console.log('[FFmpeg] [DEBUG] CRF value:', options.crf);
+			}
+			
+			// Log memory info if available
+			if ('memory' in performance && (performance as any).memory) {
+				const memInfo = (performance as any).memory;
+				console.log('[FFmpeg] [DEBUG] Browser memory - Used:', (memInfo.usedJSHeapSize / 1024 / 1024).toFixed(2), 'MB, Total:', (memInfo.totalJSHeapSize / 1024 / 1024).toFixed(2), 'MB, Limit:', (memInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2), 'MB');
+			}
 			
 			// Check if cancelled before executing
 			if (this.isCancelled) {
@@ -149,10 +190,29 @@ export class FFmpegService {
 			// Execute FFmpeg command
 			// Note: We can't easily interrupt exec() mid-operation, but the cancellation
 			// flag will prevent further operations and cleanup will happen in catch block
+			const execStartTime = Date.now();
+			console.log('[FFmpeg] [DEBUG] Starting exec() at', new Date().toISOString());
+			
 			const execPromise = this.ffmpeg.exec(command);
 			
 			// If cancelled during execution, we'll handle it in the catch block
-			await execPromise;
+			try {
+				await execPromise;
+				const execDuration = Date.now() - execStartTime;
+				console.log('[FFmpeg] [DEBUG] exec() completed successfully after', (execDuration / 1000).toFixed(2), 'seconds');
+			} catch (execError) {
+				const execDuration = Date.now() - execStartTime;
+				console.error('[FFmpeg] [DEBUG] exec() failed after', (execDuration / 1000).toFixed(2), 'seconds');
+				console.error('[FFmpeg] [DEBUG] exec() error type:', typeof execError);
+				console.error('[FFmpeg] [DEBUG] exec() error constructor:', execError?.constructor?.name);
+				console.error('[FFmpeg] [DEBUG] exec() error:', execError);
+				if (execError instanceof Error) {
+					console.error('[FFmpeg] [DEBUG] exec() error message:', execError.message);
+					console.error('[FFmpeg] [DEBUG] exec() error stack:', execError.stack);
+				}
+				// Re-throw to be caught by outer catch
+				throw execError;
+			}
 
 			// Small delay to ensure file is fully written and finalized
 			await new Promise((resolve) => setTimeout(resolve, 100));
@@ -171,8 +231,28 @@ export class FFmpegService {
 			// Read the output file with better error handling
 			let data: Uint8Array;
 			try {
+				console.log('[FFmpeg] [DEBUG] Attempting to read output file:', outputName);
+				const readStartTime = Date.now();
 				data = await this.ffmpeg.readFile(outputName);
+				const readDuration = Date.now() - readStartTime;
+				console.log('[FFmpeg] [DEBUG] Successfully read output file, size:', (data.length / 1024 / 1024).toFixed(2), 'MB, took', (readDuration / 1000).toFixed(2), 'seconds');
 			} catch (readError) {
+				console.error('[FFmpeg] [DEBUG] readFile() error type:', typeof readError);
+				console.error('[FFmpeg] [DEBUG] readFile() error constructor:', readError?.constructor?.name);
+				console.error('[FFmpeg] [DEBUG] readFile() error:', readError);
+				if (readError instanceof Error) {
+					console.error('[FFmpeg] [DEBUG] readFile() error message:', readError.message);
+					console.error('[FFmpeg] [DEBUG] readFile() error stack:', readError.stack);
+					console.error('[FFmpeg] [DEBUG] readFile() error name:', readError.name);
+				}
+				// Log all properties of the error object
+				if (readError && typeof readError === 'object') {
+					console.error('[FFmpeg] [DEBUG] readFile() error properties:', Object.keys(readError));
+					for (const key in readError) {
+						console.error(`[FFmpeg] [DEBUG] readFile() error.${key}:`, (readError as any)[key]);
+					}
+				}
+				
 				const readErrorMsg = readError instanceof Error ? readError.message : String(readError);
 				const readErrorLower = readErrorMsg.toLowerCase();
 				
@@ -204,6 +284,38 @@ export class FFmpegService {
 			// Convert to Blob
 			return new Blob([data], { type: 'video/mp4' });
 		} catch (error) {
+			// Enhanced error logging
+			console.error('[FFmpeg] [DEBUG] ========== ERROR DETAILS ==========');
+			console.error('[FFmpeg] [DEBUG] Error type:', typeof error);
+			console.error('[FFmpeg] [DEBUG] Error constructor:', error?.constructor?.name);
+			console.error('[FFmpeg] [DEBUG] Error value:', error);
+			
+			if (error instanceof Error) {
+				console.error('[FFmpeg] [DEBUG] Error name:', error.name);
+				console.error('[FFmpeg] [DEBUG] Error message:', error.message);
+				console.error('[FFmpeg] [DEBUG] Error stack:', error.stack);
+			}
+			
+			// Log all properties of the error object
+			if (error && typeof error === 'object') {
+				console.error('[FFmpeg] [DEBUG] Error object keys:', Object.keys(error));
+				for (const key in error) {
+					try {
+						console.error(`[FFmpeg] [DEBUG] error.${key}:`, (error as any)[key]);
+					} catch (e) {
+						console.error(`[FFmpeg] [DEBUG] error.${key}: [unable to log]`);
+					}
+				}
+			}
+			
+			// Log memory info if available
+			if ('memory' in performance && (performance as any).memory) {
+				const memInfo = (performance as any).memory;
+				console.error('[FFmpeg] [DEBUG] Browser memory at error - Used:', (memInfo.usedJSHeapSize / 1024 / 1024).toFixed(2), 'MB, Total:', (memInfo.totalJSHeapSize / 1024 / 1024).toFixed(2), 'MB, Limit:', (memInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2), 'MB');
+			}
+			
+			console.error('[FFmpeg] [DEBUG] ====================================');
+			
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			const errorString = errorMessage.toLowerCase();
 			console.error('Failed to trim video:', error);
@@ -214,6 +326,7 @@ export class FFmpegService {
 				await this.ffmpeg.deleteFile(inputName);
 				await this.ffmpeg.deleteFile(outputName);
 			} catch (cleanupError) {
+				console.error('[FFmpeg] [DEBUG] Cleanup error:', cleanupError);
 				// Ignore cleanup errors
 			}
 			

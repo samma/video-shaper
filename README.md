@@ -76,3 +76,4 @@ The app will automatically deploy on every push to your main branch.
 
 MIT
 
+

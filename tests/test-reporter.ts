@@ -72,3 +72,4 @@ function generateMarkdownReport(report: TestReport): string {
 
 	return md;
 }
+

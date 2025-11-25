@@ -12,3 +12,4 @@ export function formatTime(seconds: number): string {
 	return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
+
