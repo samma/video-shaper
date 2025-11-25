@@ -1,0 +1,446 @@
+# Cursor Rules for AI-Assisted Development
+# Methodology: Autonomous Feedback Loops + Explicit Contracts
+
+## Core Philosophy
+
+**The AI must be able to answer: "Did my changes work?" without asking the user.**
+
+This requires:
+- Tests that run autonomously
+- Results written to files
+- Logs that persist
+- Debug tools that export state
+- All accessible programmatically
+
+## Communication Style
+
+### General
+- Stay concise and focus on the user's request
+- Be clear, direct, and technical - avoid emojis and hype
+- Prefer referencing files by path instead of pasting large excerpts
+- Ask follow-up questions only when essential for clarity
+- Assume the user is technically competent - skip beginner explanations
+
+### When Making Changes
+- Keep edits minimal and scoped to the requested change
+- Use diff-oriented changes referencing concrete files/paths
+- Explain the "why" behind changes, not just the "what"
+- Avoid introducing style or dependency changes unless requested
+- Leave TODOs in code only if explicitly asked
+
+## Explicit Contracts
+
+### Human → AI Must Provide
+- **Spec-first input**: Requirements, constraints, and failure modes before code
+- **Current state**: Output of relevant status commands (test results, lints, errors)
+- **Execution context**: How to run, build, or test the relevant code
+- **Existing contracts**: Interface signatures, data layouts, API structures
+- **Acceptance criteria**: What must pass for the change to be complete
+
+### AI → Human Must Deliver
+1. **Minimal diffs**: Highlight specific edits, don't restate entire files
+2. **Validation steps**: Exact commands to verify the change works
+3. **Risk analysis**: Enumerate potential issues (concurrency, performance, security, breaking changes)
+4. **Follow-up checklist**: Missing tests, docs, or telemetry beyond the immediate change
+5. **Assumptions**: Clearly mark uncertainties so reviewers know where to focus
+
+## Autonomous Verification Framework
+
+### 1. Testing Loop - "Can I verify this works?"
+
+**Priority Order:**
+1. **Module/Syntax Loading Tests** (< 1 second)
+   - Must run FIRST - catches syntax errors and import failures
+   - If modules don't load, feature tests are meaningless
+2. **Unit Tests** (< 5 seconds)
+   - Individual functions work correctly
+   - Edge cases and boundaries covered
+3. **Integration Tests** (< 30 seconds)
+   - Features work end-to-end
+   - Real code paths, minimal mocking
+4. **Regression Tests** (as needed)
+   - Old features still work
+   - Bugs stay fixed
+
+**Test Requirements:**
+- Tests execute via single command: `npm test` | `cargo test` | `pytest` | `just test`
+- Results written to structured file: `test-results.json` or equivalent
+- Human-readable summary: `test-report.md` or `TEST_ANALYSIS.md`
+- Tests are deterministic and reproducible
+- Each test has clear pass/fail criteria
+
+**After Every Code Change:**
+```
+1. Run syntax/module tests (< 1s) - fix if failed
+2. Run integration tests (< 5s) - fix if failed
+3. Only proceed when tests pass
+```
+
+### 2. Logging Loop - "What happened?"
+
+**Structured Log Format:**
+```
+[timestamp] [action-name] {context-data}
+
+Examples:
+[2024-11-23T10:00:00Z] [user:action] {details: "..."}
+[2024-11-23T10:00:05Z] [error:validation] {field: "...", reason: "..."}
+```
+
+**Dual Storage:**
+- **In-memory**: Recent entries (last 100-1000) for UI display
+- **File-based**: Complete history in `logs/session-{timestamp}.log`
+
+**What to Log:**
+- User actions and intent
+- State changes
+- Errors with full context
+- Performance markers (operations > 100ms)
+- Command executions and results
+
+**What NOT to Log:**
+- Sensitive data (passwords, tokens, PII)
+- Excessive detail (every render, keystroke)
+- Redundant information already in state
+
+### 3. Debug Loop - "What's the current state?"
+
+**Essential Debug Commands:**
+- `get-state` / `getState()` - Export current application state
+- `debug-dump` - Comprehensive snapshot (state + logs + metrics + errors)
+- `state-diff` - Compare two states to see what changed
+
+**Debug Command Response Format:**
+```json
+{
+  "success": true,
+  "data": { /* actual data */ },
+  "message": "Operation completed successfully",
+  "error": null
+}
+```
+
+**All commands return this structure** - enables robust testing and error handling.
+
+**Debug Output Files:**
+- `debug/debug-{timestamp}.json` - Full system snapshot
+- `debug/state-{timestamp}.json` - State-only dump
+- Generated automatically on errors
+
+## Code Quality Standards
+
+### General Principles
+- **Clarity First**: Code should be readable by any developer
+- **Maintainability**: Easy to modify and extend
+- **Testability**: Design code to be easily testable
+- **Security**: Build it in from the start, never bolt-on
+- **Performance**: Consider implications, don't over-optimize prematurely
+- **Consistency**: Follow established patterns in the codebase
+
+### Function/Method Guidelines
+- Keep functions small (< 50 lines ideal)
+- One responsibility per function
+- Maximum 3-4 parameters (use objects for more)
+- Return early to reduce nesting
+- Avoid side effects when possible
+- Name functions with verbs, variables with nouns
+
+### Error Handling
+- Handle errors explicitly - never silently ignore
+- Provide meaningful error messages
+- Log errors with sufficient context
+- Never expose internal details in user-facing errors
+- Use appropriate error types for the language/framework
+
+### Comments & Documentation
+- Write self-documenting code first
+- Comment the "why", not the "what"
+- Document public APIs, complex algorithms, and business logic
+- Keep README.md updated with setup and usage
+- Document assumptions and constraints
+
+## Security Standards
+
+### Non-Negotiables
+- **Never commit secrets, API keys, or credentials**
+- Use environment variables for sensitive configuration
+- Validate and sanitize all user inputs
+- Use parameterized queries to prevent SQL injection
+- Implement proper authentication and authorization
+- Use HTTPS for all external communications
+- Keep dependencies updated for security patches
+
+### Input Validation
+- Validate all user inputs at boundaries
+- Use whitelist validation when possible
+- Implement rate limiting for APIs
+- Sanitize data before processing
+
+## Performance Guidelines
+
+### Strategy
+1. **Measure first** - profile and benchmark before optimizing
+2. **Identify bottlenecks** - find the actual slow parts
+3. **Optimize critical paths** - focus on what matters
+4. **Verify improvements** - measure again
+
+### Best Practices
+- Use appropriate data structures and algorithms
+- Implement caching where beneficial
+- Minimize database queries (batch, paginate)
+- Use async operations for I/O
+- Lazy load resources when possible
+
+## Testing Philosophy
+
+### Test Quality
+- Write tests alongside implementation (not after)
+- Tests must be independent and isolated
+- Use mocks/stubs for external dependencies
+- Keep tests fast and deterministic
+- Test behavior, not implementation details
+- Use descriptive test names: `should_return_error_when_user_not_found()`
+
+### Test Structure
+- Follow AAA pattern: Arrange, Act, Assert
+- Or Given-When-Then for BDD style
+- One logical assertion per test when possible
+- Test edge cases and error conditions
+
+### Coverage Goals
+- Aim for >80% coverage on critical paths
+- 100% coverage on business logic
+- Don't chase 100% everywhere - focus on value
+
+## Workflow Patterns
+
+### Pattern 1: Test-Driven Development
+```
+1. Write failing test for new feature
+2. Implement feature (minimal code to pass)
+3. Run test command
+4. Read test results file
+5. If failed: read errors, fix issues, goto 3
+6. If passed: refactor if needed, commit
+```
+
+### Pattern 2: Debug-First Investigation
+```
+When user reports: "Feature X is broken"
+
+1. Read latest log file
+2. Find error timestamp and context
+3. Execute debug-dump command
+4. Read debug snapshot file
+5. Analyze state + logs to identify root cause
+6. Implement fix + regression test
+7. Verify with tests
+```
+
+### Pattern 3: Continuous Verification
+```
+After every code change:
+
+1. Run syntax/module tests (< 1s) - fix if failed
+2. Run integration tests (< 5s) - fix if failed
+3. If passed: proceed with confidence
+4. Never move forward with failing tests
+```
+
+### Pattern 4: Post-Session Review
+```
+At start of new session:
+
+1. Read test analysis report
+2. Read latest session log
+3. Read any debug dumps from errors
+4. Identify patterns/issues
+5. Continue with context from previous session
+```
+
+## Language-Specific Guidelines
+
+### TypeScript/JavaScript
+- Use TypeScript for type safety
+- Prefer `const` over `let`, avoid `var`
+- Use async/await over promise chains
+- Use optional chaining (`?.`) and nullish coalescing (`??`)
+- Avoid `any` type - use `unknown` or proper types
+- Configure ESLint and Prettier
+
+### Python
+- Follow PEP 8 style guide
+- Use type hints for function signatures
+- Use virtual environments (venv, poetry, conda)
+- Use context managers for resource management
+- Follow the Zen of Python
+
+### Rust
+- Run `cargo fmt --all` before proposing diffs
+- Run `cargo clippy --all-targets --all-features` and address warnings
+- Provide unsafe audit checklist for any unsafe blocks
+- Use `thiserror` for domain errors, `anyhow` for application errors
+- All gameplay/simulation code must use deterministic RNG with recorded seeds
+- Log via `tracing` with structured fields
+
+### Java/C#
+- Follow language naming conventions
+- Use dependency injection
+- Implement proper exception handling
+- Use interfaces for abstraction
+- Follow SOLID principles
+
+## Git Workflow
+
+### Commit Messages
+- Use clear, descriptive commit messages
+- Follow conventional commits format:
+  - `feat:` new features
+  - `fix:` bug fixes
+  - `docs:` documentation
+  - `refactor:` code refactoring
+  - `test:` adding tests
+  - `chore:` maintenance tasks
+
+### Branch Strategy
+- Use feature branches for new work
+- Keep branches focused and small
+- Use descriptive names: `feature/user-authentication`
+- Create PRs with clear descriptions
+
+### Code Review Checklist
+Before considering code complete:
+- [ ] Code follows project conventions
+- [ ] Tests are written and passing
+- [ ] Test results written to file
+- [ ] Documentation is updated
+- [ ] No secrets or credentials committed
+- [ ] Error handling implemented
+- [ ] Validation steps provided
+- [ ] Risk analysis included
+- [ ] Code is formatted and linted
+
+## Critical Lessons Learned (from real projects)
+
+1. **Module loading tests must run FIRST** - had 69 passing tests but app wouldn't load due to syntax error. Feature tests can't catch loading errors.
+
+2. **Commands must return structured responses** - returning different types (string, object, null) makes testing fragile. Always return `{success, data, message, error}`.
+
+3. **Tests must execute real commands** - mocked tests passed when real commands broke. Integration tests must call actual code paths.
+
+4. **Logs must persist to files** - console logs disappear when app closes. AI can't review previous sessions without persistent logs.
+
+5. **Test results need both formats** - JSON for parsing, Markdown for quick human understanding.
+
+6. **Debug dumps should auto-generate on errors** - errors without context are hard to debug. Global error handlers should create debug dumps automatically.
+
+## File Organization
+
+### Required Output Files
+
+**Test Results** (structured format):
+- `test-results.json` or `test-results.xml`
+- Structure: timestamp, summary (total/passed/failed/duration), test details
+
+**Test Analysis** (human-readable):
+- `test-analysis.md` or `TEST_REPORT.md`
+- Content: status, failing tests, slow tests, recommendations
+
+**Session Logs** (structured text):
+- `logs/session-{timestamp}.log`
+- Format: `[timestamp] [action] {details}`
+
+**Debug Snapshots** (structured format):
+- `debug/debug-{timestamp}.json`
+- Content: timestamp, state, logs, performance, errors
+
+## Decision Making
+
+When facing choices:
+1. **Explicit over Implicit** - make behavior clear and obvious
+2. **Clarity over Cleverness** - simple, readable code is better
+3. **Maintainability over Performance** - optimize only when measurements show need
+4. **Consistency over Perfection** - follow existing patterns
+5. **Ask Questions** - don't assume, clarify requirements
+
+## Success Criteria
+
+### ✅ Minimum Viable
+- AI can run tests and see results
+- Tests create parseable output file
+- Basic logging to file
+
+### ✅ Functional
+- AI can execute commands programmatically
+- Tests catch breaking changes
+- Logs provide session context
+- Debug dumps available on demand
+
+### ✅ Optimal
+- AI works autonomously for extended periods
+- All changes verified by tests before proceeding
+- Rich logging for debugging any issue
+- Debug tools for runtime inspection
+- Persistent context across sessions
+- Zero user intervention for verification
+
+## Common Pitfalls to Avoid
+
+- ❌ Testing too late - add test framework on day 1
+- ❌ Logs without structure - use consistent format
+- ❌ Mocking everything - mix unit tests with integration tests
+- ❌ Ignoring flaky tests - fix immediately, maintain 100% pass rate
+- ❌ No debug on failure - auto-generate debug dump when tests fail
+- ❌ Only in-memory logging - always persist to timestamped files
+- ❌ Skipping module loading tests - first test must verify code loads
+
+## Guardrails & Validation
+
+### Before Proposing Any Code
+- Consider the risk analysis (security, performance, breaking changes)
+- Identify what tests are needed
+- Plan the validation steps
+- Check for potential undefined behavior or edge cases
+
+### After Implementing
+- Run formatter and linter
+- Execute all relevant tests
+- Read test output files
+- If any failures: fix before proceeding
+- Generate debug dump if uncertain about state
+
+## Prompt Hygiene
+
+When generating code:
+- Confirm formatting tools were considered (even if not run locally)
+- Provide exact commands to verify changes
+- List expected outcomes
+- Enumerate risks and mitigations
+- Identify follow-up work needed
+
+## Summary
+
+This methodology transforms AI development from:
+- **"Try and hope"** → **"Verify and know"**
+- **"What broke?"** → **"This broke, here's why, here's the context"**
+- **"Start fresh each session"** → **"Continue from where we left off"**
+
+### The Core Investment
+Build early:
+1. Command system for programmatic control
+2. Test framework for autonomous verification
+3. Logging system for persistent context
+4. Debug tools for runtime inspection
+
+### The Return
+AI can then:
+- Verify every change with tests
+- Debug issues without user help
+- Review previous session's work
+- Catch breaking changes immediately
+- Work autonomously with confidence
+
+---
+
+**Remember:** These rules are guidelines informed by real projects. Adapt to the specific needs of this codebase while maintaining the core principles of autonomous verification, persistent feedback, and structured output.
+
