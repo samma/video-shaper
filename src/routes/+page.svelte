@@ -3,8 +3,10 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import VideoPreview from '$lib/components/VideoPreview.svelte';
 	import TrimControls from '$lib/components/TrimControls.svelte';
+	import CompressionControls from '$lib/components/CompressionControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
+	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
 
 	let title = 'Video Shaper';
 	let ffmpegService: FFmpegService | null = null;
@@ -17,10 +19,34 @@
 	let endTime: number = 0;
 	let videoPreviewComponent: any = null;
 
+	// Compression state
+	let compressionEnabled: boolean = false;
+	let crf: number = 23;
+
 	// Processing state
 	let processing: boolean = false;
 	let processingProgress: number = 0;
 	let processingError: string = '';
+
+	function handleCancel() {
+		if (ffmpegService) {
+			ffmpegService.cancel();
+		}
+		processing = false;
+		processingProgress = 0;
+		processingError = 'Operation cancelled';
+	}
+
+	// Computed: estimated output file size
+	$: estimatedSize = selectedFile && videoDuration > 0
+		? estimateOutputFileSize(
+			selectedFile.size,
+			videoDuration,
+			endTime - startTime,
+			compressionEnabled,
+			crf
+		)
+		: 0;
 
 	function seekVideo(time: number) {
 		if (videoPreviewComponent) {
@@ -45,6 +71,9 @@
 		endTime = 0;
 		processingError = '';
 		videoDuration = 0; // Reset duration to show loading state
+		// Reset compression
+		compressionEnabled = false;
+		crf = 23;
 	}
 
 	function handleDurationLoad(duration: number) {
@@ -55,6 +84,26 @@
 
 	async function handleProcess() {
 		if (!ffmpegService || !selectedFile) return;
+
+		// Warn about large files with compression
+		if (compressionEnabled) {
+			const fileSizeMB = selectedFile.size / (1024 * 1024);
+			const trimmedDuration = endTime - startTime;
+			const originalDuration = videoDuration;
+			const estimatedTrimmedSizeMB = (fileSizeMB * trimmedDuration) / originalDuration;
+
+			// Warn if file is large (either original or trimmed portion)
+			if (fileSizeMB > 100 || estimatedTrimmedSizeMB > 50) {
+				const message =
+					`Large file detected (${formatFileSizeMB(selectedFile.size)} original, ` +
+					`~${formatFileSizeMB(estimatedTrimmedSizeMB * 1024 * 1024)} trimmed). ` +
+					`Compression may fail or take a very long time due to browser memory limits. ` +
+					`Continue anyway?`;
+				if (!confirm(message)) {
+					return;
+				}
+			}
+		}
 
 		processing = true;
 		processingProgress = 0;
@@ -69,7 +118,9 @@
 			// Trim the video
 			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, {
 				startTime,
-				duration: endTime - startTime
+				duration: endTime - startTime,
+				compressionEnabled,
+				crf
 			});
 
 			// Download the result
@@ -84,7 +135,13 @@
 
 			processingProgress = 1;
 		} catch (error) {
-			processingError = error instanceof Error ? error.message : 'Failed to process video';
+			const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
+			// Don't show error if it was cancelled
+			if (!errorMessage.includes('cancelled')) {
+				processingError = errorMessage;
+			} else {
+				processingError = '';
+			}
 			console.error('Processing error:', error);
 		} finally {
 			processing = false;
@@ -119,8 +176,33 @@
 							onSeek={seekVideo}
 						/>
 
+						<CompressionControls
+							bind:compressionEnabled
+							bind:crf
+							onCompressionToggle={(enabled) => (compressionEnabled = enabled)}
+							onCrfChange={(value) => (crf = value)}
+						/>
+
+						{#if estimatedSize > 0}
+							<div class="bg-gray-700 rounded-lg p-3 sm:p-4">
+								<div class="flex items-center justify-between">
+									<span class="text-gray-300 text-sm sm:text-base">Estimated Output Size:</span>
+									<span class="text-cyan-400 font-semibold text-base sm:text-lg">
+										~{formatFileSizeMB(estimatedSize)}
+									</span>
+								</div>
+								{#if selectedFile}
+									<div class="mt-2 text-xs sm:text-sm text-gray-400">
+										Original: {formatFileSizeMB(selectedFile.size)} • 
+										Reduction: {Math.round((1 - estimatedSize / selectedFile.size) * 100)}%
+									</div>
+								{/if}
+							</div>
+						{/if}
+
 						<ProcessButton
 							onProcess={handleProcess}
+							onCancel={handleCancel}
 							{processing}
 							progress={processingProgress}
 							disabled={!ffmpegService || videoDuration === 0}

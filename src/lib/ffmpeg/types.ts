@@ -6,6 +6,8 @@ export interface FFmpegProgress {
 export interface TrimOptions {
 	startTime: number; // in seconds
 	duration: number; // in seconds
+	compressionEnabled?: boolean; // whether to apply compression
+	crf?: number; // Constant Rate Factor (18-28, lower = higher quality)
 }
 
 export interface FFmpegError {

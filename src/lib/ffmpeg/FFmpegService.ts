@@ -7,6 +7,7 @@ export class FFmpegService {
 	private loadStatus: FFmpegLoadStatus = 'unloaded';
 	private loadProgress: number = 0;
 	private onProgressCallback?: (progress: FFmpegProgress) => void;
+	private isCancelled: boolean = false;
 
 	constructor() {
 		this.ffmpeg = new FFmpeg();
@@ -65,26 +66,100 @@ export class FFmpegService {
 			throw new Error('FFmpeg is not loaded. Call initialize() first.');
 		}
 
-		try {
-			// Write input file to FFmpeg's virtual filesystem
-			const inputName = 'input.mp4';
-			const outputName = 'output.mp4';
+		// Reset cancellation flag
+		this.isCancelled = false;
 
+		const inputName = 'input.mp4';
+		const outputName = 'output.mp4';
+		let command: string[] = [];
+
+		try {
+			// Check if cancelled before starting
+			if (this.isCancelled) {
+				throw new Error('Operation cancelled');
+			}
+
+			// Write input file to FFmpeg's virtual filesystem
 			await this.ffmpeg.writeFile(inputName, await fetchFile(file));
 
-			// Run FFmpeg command to trim video
-			// -ss: start time, -t: duration, -c copy: copy codec (fast, no re-encoding)
-			await this.ffmpeg.exec([
+			// Check again after file write
+			if (this.isCancelled) {
+				await this.ffmpeg.deleteFile(inputName);
+				throw new Error('Operation cancelled');
+			}
+
+			// Build FFmpeg command
+			command = [
 				'-i',
 				inputName,
 				'-ss',
 				options.startTime.toString(),
 				'-t',
-				options.duration.toString(),
-				'-c',
-				'copy',
-				outputName
-			]);
+				options.duration.toString()
+			];
+
+			if (options.compressionEnabled && options.crf !== undefined) {
+				// Validate CRF value
+				const crfValue = Math.max(18, Math.min(28, options.crf));
+				
+				// Apply compression with CRF - optimized for memory efficiency
+				// -c:v libx264: use H.264 codec
+				// -crf: Constant Rate Factor (18-28, lower = higher quality)
+				// -preset ultrafast: fastest encoding (lowest memory usage)
+				// -tune fastdecode: optimize for faster decoding (lower memory)
+				// -profile:v baseline: baseline profile (lower memory than high/main)
+				// -level 3.0: lower level = less memory requirements
+				// -threads 1: single thread (less memory overhead)
+				// -c:a copy: copy audio without re-encoding
+				// -movflags +faststart: optimize for web playback
+				command.push(
+					'-c:v',
+					'libx264',
+					'-crf',
+					crfValue.toString(),
+					'-preset',
+					'ultrafast',
+					'-tune',
+					'fastdecode',
+					'-profile:v',
+					'baseline',
+					'-level',
+					'3.0',
+					'-threads',
+					'1',
+					'-c:a',
+					'copy',
+					'-movflags',
+					'+faststart'
+				);
+			} else {
+				// Copy codec (fast, no re-encoding)
+				command.push('-c', 'copy');
+			}
+
+			// Add -y flag to overwrite output file if it exists
+			command.push('-y', outputName);
+
+			console.log('[FFmpeg] Executing command:', command.join(' '));
+			
+			// Check if cancelled before executing
+			if (this.isCancelled) {
+				await this.ffmpeg.deleteFile(inputName);
+				throw new Error('Operation cancelled');
+			}
+
+			await this.ffmpeg.exec(command);
+
+			// Check if cancelled after execution
+			if (this.isCancelled) {
+				try {
+					await this.ffmpeg.deleteFile(inputName);
+					await this.ffmpeg.deleteFile(outputName);
+				} catch (cleanupError) {
+					// Ignore cleanup errors
+				}
+				throw new Error('Operation cancelled');
+			}
 
 			// Read the output file
 			const data = await this.ffmpeg.readFile(outputName);
@@ -96,8 +171,37 @@ export class FFmpegService {
 			// Convert to Blob
 			return new Blob([data], { type: 'video/mp4' });
 		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorString = errorMessage.toLowerCase();
 			console.error('Failed to trim video:', error);
-			throw new Error(`Failed to trim video: ${error}`);
+			console.error('FFmpeg command that failed:', command.join(' '));
+			
+			// Clean up files on error
+			try {
+				await this.ffmpeg.deleteFile(inputName);
+				await this.ffmpeg.deleteFile(outputName);
+			} catch (cleanupError) {
+				// Ignore cleanup errors
+			}
+			
+			// Check for memory-related errors
+			if (
+				errorString.includes('memory') ||
+				errorString.includes('out of memory') ||
+				errorString.includes('cannot allocate memory') ||
+				errorString.includes('allocation') ||
+				errorString.includes('abort') ||
+				errorString.includes('killed')
+			) {
+				const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+				throw new Error(
+					`Video too large for compression (${fileSizeMB}MB). ` +
+					`Try trimming to a shorter segment first, or disable compression for large files. ` +
+					`Browser memory limits prevent processing very large videos with compression.`
+				);
+			}
+			
+			throw new Error(`Failed to process video: ${errorMessage}`);
 		}
 	}
 
@@ -127,6 +231,20 @@ export class FFmpegService {
 	 */
 	onProgress(callback: (progress: FFmpegProgress) => void): void {
 		this.onProgressCallback = callback;
+	}
+
+	/**
+	 * Cancel the current video processing operation
+	 */
+	cancel(): void {
+		this.isCancelled = true;
+		try {
+			// Terminate FFmpeg execution
+			this.ffmpeg.terminate();
+		} catch (error) {
+			// Ignore errors if FFmpeg is not running
+			console.log('[FFmpeg] Cancel requested');
+		}
 	}
 
 	/**
