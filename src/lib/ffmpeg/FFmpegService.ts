@@ -154,6 +154,9 @@ export class FFmpegService {
 			// If cancelled during execution, we'll handle it in the catch block
 			await execPromise;
 
+			// Small delay to ensure file is fully written and finalized
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
 			// Check if cancelled after execution completes
 			if (this.isCancelled) {
 				try {
@@ -165,8 +168,34 @@ export class FFmpegService {
 				throw new Error('Operation cancelled');
 			}
 
-			// Read the output file
-			const data = await this.ffmpeg.readFile(outputName);
+			// Read the output file with better error handling
+			let data: Uint8Array;
+			try {
+				data = await this.ffmpeg.readFile(outputName);
+			} catch (readError) {
+				const readErrorMsg = readError instanceof Error ? readError.message : String(readError);
+				const readErrorLower = readErrorMsg.toLowerCase();
+				
+				// Check for abort/memory errors during file read
+				if (
+					readErrorLower.includes('abort') ||
+					readErrorLower.includes('memory') ||
+					readErrorLower.includes('allocation')
+				) {
+					const trimmedDuration = options.duration;
+					const estimatedOutputMB = options.compressionEnabled
+						? (file.size * (trimmedDuration / (file.size / (1024 * 1024) / 0.1))) * 0.6 / (1024 * 1024)
+						: (file.size * trimmedDuration) / (file.size / (1024 * 1024) / 0.1) / (1024 * 1024);
+					
+					throw new Error(
+						`Output file too large to process (estimated ${estimatedOutputMB.toFixed(1)}MB). ` +
+						`The compressed output exceeded browser memory limits. ` +
+						`Try: 1) Trim to a shorter segment, 2) Use higher compression (move slider left), or 3) Disable compression.`
+					);
+				}
+				// Re-throw other read errors
+				throw readError;
+			}
 
 			// Clean up
 			await this.ffmpeg.deleteFile(inputName);
@@ -188,21 +217,33 @@ export class FFmpegService {
 				// Ignore cleanup errors
 			}
 			
-			// Check for memory-related errors
+			// Check for memory-related errors and abort errors
 			if (
 				errorString.includes('memory') ||
 				errorString.includes('out of memory') ||
 				errorString.includes('cannot allocate memory') ||
 				errorString.includes('allocation') ||
 				errorString.includes('abort') ||
+				errorString.includes('aborted') ||
 				errorString.includes('killed')
 			) {
 				const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-				throw new Error(
-					`Video too large for compression (${fileSizeMB}MB). ` +
-					`Try trimming to a shorter segment first, or disable compression for large files. ` +
-					`Browser memory limits prevent processing very large videos with compression.`
-				);
+				const trimmedDuration = options.duration;
+				
+				// Provide more specific error message based on when the error occurred
+				if (errorString.includes('abort') || errorString.includes('aborted')) {
+					throw new Error(
+						`Processing aborted - output file too large (${fileSizeMB}MB input, ~${(trimmedDuration * 10).toFixed(1)}s trimmed). ` +
+						`Browser memory limits prevent reading large output files. ` +
+						`Try: 1) Trim to a shorter segment (< 5 seconds), 2) Use higher compression (move slider left), or 3) Disable compression.`
+					);
+				} else {
+					throw new Error(
+						`Video too large for compression (${fileSizeMB}MB). ` +
+						`Try trimming to a shorter segment first, or disable compression for large files. ` +
+						`Browser memory limits prevent processing very large videos with compression.`
+					);
+				}
 			}
 			
 			throw new Error(`Failed to process video: ${errorMessage}`);

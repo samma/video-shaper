@@ -159,6 +159,55 @@
 			<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError}>
 				{#if !selectedFile}
 					<FileUpload onFileSelect={handleFileSelect} disabled={processing} />
+
+					<!-- Information Card -->
+					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
+						<div class="space-y-3 text-sm sm:text-base text-gray-300">
+							<p>
+								<strong class="text-cyan-400">Video Shaper</strong> is a client-side video editor that runs entirely in your browser. 
+								All processing happens on your device - videos never leave your computer.
+							</p>
+							
+							<div>
+								<p class="font-semibold text-gray-200 mb-1">Features:</p>
+								<ul class="list-disc list-inside space-y-1 ml-2 text-gray-300">
+									<li>Trim videos to specific time ranges</li>
+									<li>Compress videos to reduce file size</li>
+									<li>Real-time preview of trim selection</li>
+									<li>No server uploads - 100% client-side processing</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+
+					<!-- Limitations Card -->
+					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
+						<h2 class="text-lg sm:text-xl font-semibold text-gray-200 mb-3">Important Limitations</h2>
+						
+						<div class="space-y-2 text-sm sm:text-base text-gray-300">
+							<ul class="list-disc list-inside space-y-2 ml-2">
+								<li>Large videos (>100MB) may cause memory issues, especially with compression</li>
+								<li>Processing is slower than native video editors (3-5x)</li>
+								<li>Very large output files (>20MB) may fail to download due to browser memory limits</li>
+								<li>For best results, trim to segments under 10 seconds when using compression</li>
+								<li>Initial load downloads ~31MB (ffmpeg.wasm) - cached after first visit</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Disclaimer Card -->
+					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
+						<h2 class="text-lg sm:text-xl font-semibold text-gray-200 mb-3">Disclaimer</h2>
+						
+						<div class="text-xs sm:text-sm text-gray-400 leading-relaxed">
+							<p>
+								This service is provided "as is" without warranty of any kind. 
+								Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
+								Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
+								that may occur during video processing. Use at your own risk.
+							</p>
+						</div>
+					</div>
 				{:else}
 					<div class="space-y-4 sm:space-y-6">
 						<VideoPreview
