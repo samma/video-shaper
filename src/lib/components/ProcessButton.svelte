@@ -12,10 +12,10 @@
 	disabled={buttonDisabled}
 	class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white transition-all
 		{processing
-		? 'bg-blue-400 cursor-wait'
+		? 'bg-cyan-500 cursor-wait'
 		: buttonDisabled
-			? 'bg-gray-300 cursor-not-allowed'
-			: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'}"
+			? 'bg-gray-600 cursor-not-allowed text-gray-400'
+			: 'bg-teal-600 hover:bg-teal-500 active:bg-teal-700'}"
 >
 	{#if processing}
 		<span class="flex items-center justify-center gap-2">

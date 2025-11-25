@@ -18,7 +18,7 @@
 </script>
 
 <div class="trim-controls space-y-4">
-	<h3 class="text-lg font-semibold text-gray-800 mb-2">Trim Video</h3>
+	<h3 class="text-lg font-semibold text-gray-200 mb-2">Trim Video</h3>
 
 	<!-- Timeline Slider - Primary Interface -->
 	<div>

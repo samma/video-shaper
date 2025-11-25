@@ -5,7 +5,6 @@
 	import TrimControls from '$lib/components/TrimControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
-	import { formatFileSize, isFileTooLarge } from '$lib/utils/file-utils';
 
 	let title = 'Video Shaper';
 	let ffmpegService: FFmpegService | null = null;
@@ -45,18 +44,13 @@
 		startTime = 0;
 		endTime = 0;
 		processingError = '';
-
-		// Warn about large files
-		if (isFileTooLarge(file, 100)) {
-			alert(
-				`Warning: Large file detected (${formatFileSize(file.size)}). Processing may take longer and use significant memory.`
-			);
-		}
+		videoDuration = 0; // Reset duration to show loading state
 	}
 
 	function handleDurationLoad(duration: number) {
 		videoDuration = duration;
 		endTime = duration;
+		// Warning will automatically hide when videoDuration > 0
 	}
 
 	async function handleProcess() {
@@ -98,13 +92,13 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50 p-3 sm:p-4">
+<div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<div class="max-w-4xl mx-auto py-4 sm:py-8">
-		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4 sm:mb-8">
+		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-4 sm:mb-8">
 			{title}
 		</h1>
 
-		<div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
+		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
 			<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError}>
 				{#if !selectedFile}
 					<FileUpload onFileSelect={handleFileSelect} disabled={processing} />
@@ -133,15 +127,15 @@
 						/>
 
 						{#if processingError}
-							<div class="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-center">
-								<p class="text-red-800 font-semibold text-sm sm:text-base">Error</p>
-								<p class="text-red-600 text-xs sm:text-sm mt-1">{processingError}</p>
+							<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
+								<p class="text-red-200 font-semibold text-sm sm:text-base">Error</p>
+								<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
 							</div>
 						{/if}
 
 						<button
 							on:click={() => (selectedFile = null)}
-							class="w-full py-2 sm:py-2.5 px-4 text-sm sm:text-base border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+							class="w-full py-2 sm:py-2.5 px-4 text-sm sm:text-base border border-gray-600 rounded-lg text-gray-200 hover:bg-gray-700 active:bg-gray-600 transition-colors"
 							disabled={processing}
 						>
 							Select Different Video
@@ -151,7 +145,7 @@
 			</FFmpegLoader>
 
 			{#if ffmpegError}
-				<div class="mt-4 text-center text-red-600 text-sm">
+				<div class="mt-4 text-center text-red-400 text-sm">
 					Error: {ffmpegError}
 				</div>
 			{/if}

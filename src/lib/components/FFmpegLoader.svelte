@@ -47,21 +47,21 @@
 <div class="ffmpeg-loader">
 	{#if loadStatus === 'checking'}
 		<div class="text-center p-4">
-			<div class="text-gray-600">Checking browser compatibility...</div>
+			<div class="text-gray-300">Checking browser compatibility...</div>
 		</div>
 	{:else if loadStatus === 'unsupported'}
-		<div class="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-center">
-			<div class="text-red-800 font-semibold text-sm sm:text-base mb-2">Browser Not Supported</div>
-			<div class="text-red-600 text-xs sm:text-sm">
+		<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
+			<div class="text-red-200 font-semibold text-sm sm:text-base mb-2">Browser Not Supported</div>
+			<div class="text-red-300 text-xs sm:text-sm">
 				Your browser does not support WebAssembly. Please use a modern browser like Chrome,
 				Firefox, Safari, or Edge.
 			</div>
 		</div>
 	{:else if loadStatus === 'loading'}
 		<div class="text-center p-4 sm:p-6">
-			<div class="inline-block animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-blue-600 mb-3"></div>
-			<div class="text-gray-700 font-medium text-sm sm:text-base">Loading video processor...</div>
-			<div class="text-gray-500 text-xs sm:text-sm mt-1">
+			<div class="inline-block animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-cyan-400 mb-3"></div>
+			<div class="text-gray-200 font-medium text-sm sm:text-base">Loading video processor...</div>
+			<div class="text-gray-400 text-xs sm:text-sm mt-1">
 				{#if sessionStorage.getItem('ffmpeg-loaded') === 'true'}
 					Loading from cache...
 				{:else}
@@ -70,9 +70,9 @@
 			</div>
 		</div>
 	{:else if loadStatus === 'error'}
-		<div class="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-center">
-			<div class="text-red-800 font-semibold text-sm sm:text-base mb-2">Failed to Load</div>
-			<div class="text-red-600 text-xs sm:text-sm">{errorMessage}</div>
+		<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
+			<div class="text-red-200 font-semibold text-sm sm:text-base mb-2">Failed to Load</div>
+			<div class="text-red-300 text-xs sm:text-sm">{errorMessage}</div>
 		</div>
 	{:else if loadStatus === 'loaded'}
 		<slot />

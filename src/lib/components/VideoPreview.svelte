@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { formatTime } from '$lib/utils/time-utils';
 
 	export let videoFile: File;
 	export let currentTime: number = 0;
@@ -91,19 +90,5 @@
 		</video>
 	</div>
 
-	<div class="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600 text-center">
-		{#if duration}
-			<div class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-				<span>Duration: {formatTime(duration)}</span>
-				<span class="hidden sm:inline">|</span>
-				<span>Current: {formatTime(currentTime)}</span>
-			</div>
-			<span class="text-[10px] sm:text-xs text-gray-400 mt-1 block">
-				(Space: play/pause, ←→: seek)
-			</span>
-		{:else}
-			Loading video...
-		{/if}
-	</div>
 </div>
 

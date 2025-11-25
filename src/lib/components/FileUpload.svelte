@@ -53,8 +53,8 @@
 <div
 	class="file-upload border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition-colors
 		{isDragging
-		? 'border-blue-500 bg-blue-50'
-		: 'border-gray-300 hover:border-gray-400 bg-white'}
+		? 'border-cyan-500 bg-cyan-900/30'
+		: 'border-gray-600 hover:border-gray-500 bg-gray-700'}
 		{disabled ? 'opacity-50 cursor-not-allowed' : ''}"
 	on:dragover={handleDragOver}
 	on:dragleave={handleDragLeave}
@@ -73,7 +73,7 @@
 		{disabled}
 	/>
 
-	<div class="text-gray-600">
+	<div class="text-gray-300">
 		<svg
 			class="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3 sm:mb-4"
 			stroke="currentColor"
@@ -91,7 +91,7 @@
 		<p class="text-base sm:text-lg font-medium mb-1">
 			{isDragging ? 'Drop video here' : 'Click to select or drag and drop'}
 		</p>
-		<p class="text-xs sm:text-sm text-gray-500">Supports: MP4, WebM, MOV, AVI, and more</p>
+		<p class="text-xs sm:text-sm text-gray-400">Supports: MP4, WebM, MOV, AVI, and more</p>
 	</div>
 </div>
 
