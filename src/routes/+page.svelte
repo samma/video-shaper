@@ -16,11 +16,18 @@
 	let videoDuration: number = 0;
 	let startTime: number = 0;
 	let endTime: number = 0;
+	let videoPreviewComponent: any = null;
 
 	// Processing state
 	let processing: boolean = false;
 	let processingProgress: number = 0;
 	let processingError: string = '';
+
+	function seekVideo(time: number) {
+		if (videoPreviewComponent) {
+			videoPreviewComponent.seekTo(time);
+		}
+	}
 
 	function handleFFmpegReady(service: FFmpegService) {
 		ffmpegService = service;
@@ -104,6 +111,7 @@
 				{:else}
 					<div class="space-y-4 sm:space-y-6">
 						<VideoPreview
+							bind:this={videoPreviewComponent}
 							videoFile={selectedFile}
 							onDurationLoad={handleDurationLoad}
 						/>
@@ -114,6 +122,7 @@
 							bind:endTime
 							onStartChange={(time) => (startTime = time)}
 							onEndChange={(time) => (endTime = time)}
+							onSeek={seekVideo}
 						/>
 
 						<ProcessButton

@@ -8,6 +8,8 @@
 	export let onStartChange: (time: number) => void = () => {};
 	// eslint-disable-next-line no-unused-vars
 	export let onEndChange: (time: number) => void = () => {};
+	// eslint-disable-next-line no-unused-vars
+	export let onSeek: (time: number) => void = () => {};
 
 	let containerElement: HTMLDivElement;
 	let isDraggingStart = false;
@@ -67,11 +69,13 @@
 			const newStart = Math.max(0, Math.min(newTime, endTime - 0.1));
 			if (Math.abs(newStart - startTime) > 0.01) {
 				onStartChange(newStart);
+				onSeek(newStart);
 			}
 		} else if (isDraggingEnd) {
 			const newEnd = Math.max(startTime + 0.1, Math.min(newTime, duration));
 			if (Math.abs(newEnd - endTime) > 0.01) {
 				onEndChange(newEnd);
+				onSeek(newEnd);
 			}
 		} else if (isDraggingRange) {
 			const rangeDuration = endTime - startTime;
@@ -97,11 +101,13 @@
 			const newStart = Math.max(0, Math.min(newTime, endTime - 0.1));
 			if (Math.abs(newStart - startTime) > 0.01) {
 				onStartChange(newStart);
+				onSeek(newStart);
 			}
 		} else if (isDraggingEnd) {
 			const newEnd = Math.max(startTime + 0.1, Math.min(newTime, duration));
 			if (Math.abs(newEnd - endTime) > 0.01) {
 				onEndChange(newEnd);
+				onSeek(newEnd);
 			}
 		} else if (isDraggingRange) {
 			const rangeDuration = endTime - startTime;
