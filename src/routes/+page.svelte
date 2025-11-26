@@ -11,6 +11,7 @@
 	let title = 'Video Shaper';
 	let ffmpegService: FFmpegService | null = null;
 	let ffmpegError = '';
+	let ffmpegLoading = false;
 
 	// Video state
 	let selectedFile: File | null = null;
@@ -66,6 +67,10 @@
 	function handleFFmpegError(error: Error) {
 		ffmpegError = error.message;
 		console.error('FFmpeg error:', error);
+	}
+
+	function handleFFmpegLoadingChange(isLoading: boolean) {
+		ffmpegLoading = isLoading;
 	}
 
 	function handleFileSelect(file: File) {
@@ -160,9 +165,11 @@
 		</h1>
 
 		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
-			<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError}>
+			<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange}>
 				{#if !selectedFile}
-					<FileUpload onFileSelect={handleFileSelect} disabled={processing} />
+					{#if !ffmpegLoading}
+						<FileUpload onFileSelect={handleFileSelect} disabled={processing} />
+					{/if}
 
 					<!-- Information Card -->
 					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
