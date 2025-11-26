@@ -4,6 +4,7 @@
 	export let duration: number = 0;
 	export let startTime: number = 0;
 	export let endTime: number = 0;
+	export let disabled: boolean = false;
 	// eslint-disable-next-line no-unused-vars
 	export let onStartChange: (time: number) => void = () => {};
 	// eslint-disable-next-line no-unused-vars
@@ -28,6 +29,7 @@
 	}
 
 	function handleMouseDown(event: MouseEvent, handle: 'start' | 'end' | 'range') {
+		if (disabled) return;
 		event.preventDefault();
 
 		if (handle === 'start') {
@@ -43,6 +45,7 @@
 	}
 
 	function handleTouchStart(event: TouchEvent, handle: 'start' | 'end' | 'range') {
+		if (disabled) return;
 		event.preventDefault();
 
 		if (handle === 'start') {
@@ -137,6 +140,7 @@
 	}
 
 	function handleClick(event: MouseEvent | KeyboardEvent) {
+		if (disabled) return;
 		// Don't handle clicks if we just finished dragging
 		if (isDraggingStart || isDraggingEnd || isDraggingRange) return;
 		if (!containerElement) return;
@@ -174,9 +178,10 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		bind:this={containerElement}
-		class="relative h-12 cursor-pointer select-none"
+		class="relative h-12 select-none {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 		on:click={handleClick}
 		aria-label="Video timeline"
+		aria-disabled={disabled}
 	>
 		<!-- Background track -->
 		<div class="absolute inset-0 rounded-full bg-gray-700"></div>
@@ -190,7 +195,7 @@
 		<!-- Start handle -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
-			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg z-10 transition-transform hover:scale-110 active:cursor-grabbing active:scale-125 {isDraggingStart ? '' : 'transition-all'}"
+			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingStart ? '' : 'transition-all'}"
 			style="left: {startPercent}%"
 			on:mousedown={(e) => {
 				e.stopPropagation();
@@ -210,7 +215,7 @@
 		<!-- End handle -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
-			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg z-10 transition-transform hover:scale-110 active:cursor-grabbing active:scale-125 {isDraggingEnd ? '' : 'transition-all'}"
+			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingEnd ? '' : 'transition-all'}"
 			style="left: {endPercent}%"
 			on:mousedown={(e) => {
 				e.stopPropagation();
@@ -231,7 +236,7 @@
 		{#if rangeWidth > 5}
 			<!-- svelte-ignore a11y-no-static-element-interactions -->
 			<div
-				class="absolute top-0 h-full cursor-move z-0"
+				class="absolute top-0 h-full z-0 {disabled ? 'cursor-not-allowed' : 'cursor-move'}"
 				style="left: {startPercent}%; width: {rangeWidth}%"
 				on:mousedown={(e) => {
 					e.stopPropagation();

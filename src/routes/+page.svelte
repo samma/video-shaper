@@ -349,6 +349,7 @@
 							duration={videoDuration}
 							bind:startTime
 							bind:endTime
+							disabled={processing}
 							onStartChange={(time) => (startTime = time)}
 							onEndChange={(time) => (endTime = time)}
 							onSeek={seekVideo}
@@ -357,6 +358,7 @@
 						<CompressionControls
 							bind:compressionEnabled
 							bind:crf
+							disabled={processing}
 							onCompressionToggle={(enabled) => (compressionEnabled = enabled)}
 							onCrfChange={(value) => (crf = value)}
 						/>

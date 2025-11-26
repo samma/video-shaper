@@ -1,6 +1,7 @@
 <script lang="ts">
 	export let compressionEnabled: boolean = false;
 	export let crf: number = 23; // Default CRF value (balanced quality/size)
+	export let disabled: boolean = false;
 	// eslint-disable-next-line no-unused-vars
 	export let onCompressionToggle: (enabled: boolean) => void = () => {};
 	// eslint-disable-next-line no-unused-vars
@@ -10,11 +11,13 @@
 	const MAX_CRF = 28; // Lower quality, smaller file
 
 	function handleToggle() {
+		if (disabled) return;
 		compressionEnabled = !compressionEnabled;
 		onCompressionToggle(compressionEnabled);
 	}
 
 	function handleSliderChange(event: Event) {
+		if (disabled) return;
 		const target = event.target as HTMLInputElement;
 		const sliderValue = parseFloat(target.value);
 		// Invert: slider goes from low quality (left) to high quality (right)
@@ -35,16 +38,19 @@
 	}
 </script>
 
-<div class="compression-controls space-y-4">
+<div class="compression-controls space-y-4 {disabled ? 'opacity-60' : ''}">
 	<div class="flex items-center justify-between mb-2">
 		<h3 class="text-lg font-semibold text-gray-200">Compression</h3>
 		<button
 			on:click={handleToggle}
+			disabled={disabled}
 			class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-				{compressionEnabled ? 'bg-teal-600' : 'bg-gray-600'}"
+				{compressionEnabled ? 'bg-teal-600' : 'bg-gray-600'}
+				{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 			role="switch"
 			aria-checked={compressionEnabled}
 			aria-label="Toggle compression"
+			aria-disabled={disabled}
 		>
 			<span
 				class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
@@ -67,8 +73,10 @@
 					step="1"
 					value={sliderValue}
 					on:input={handleSliderChange}
-					class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-cyan"
+					disabled={disabled}
+					class="w-full h-2 bg-gray-700 rounded-lg appearance-none slider-cyan {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 					aria-label="Compression quality"
+					aria-disabled={disabled}
 				/>
 				<div class="flex justify-between text-xs text-gray-500 mt-1">
 					<span>Small File</span>

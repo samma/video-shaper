@@ -4,6 +4,7 @@
 	export let duration: number = 0;
 	export let startTime: number = 0;
 	export let endTime: number = 0;
+	export let disabled: boolean = false;
 	// eslint-disable-next-line no-unused-vars
 	export let onStartChange: (time: number) => void = () => {};
 	// eslint-disable-next-line no-unused-vars
@@ -26,6 +27,7 @@
 			{duration}
 			bind:startTime
 			bind:endTime
+			{disabled}
 			{onStartChange}
 			{onEndChange}
 			{onSeek}
