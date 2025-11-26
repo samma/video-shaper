@@ -66,18 +66,26 @@
 			</div>
 
 			<div class="relative">
-				<input
-					type="range"
-					min={MIN_CRF}
-					max={MAX_CRF}
-					step="1"
-					value={sliderValue}
-					on:input={handleSliderChange}
-					disabled={disabled}
-					class="w-full h-2 bg-gray-700 rounded-lg appearance-none slider-cyan {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
-					aria-label="Compression quality"
-					aria-disabled={disabled}
-				/>
+				<div class="relative">
+					<input
+						type="range"
+						min={MIN_CRF}
+						max={MAX_CRF}
+						step="1"
+						value={sliderValue}
+						on:input={handleSliderChange}
+						disabled={disabled}
+						class="w-full h-2 bg-gray-700 rounded-lg appearance-none slider-cyan {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+						aria-label="Compression quality"
+						aria-disabled={disabled}
+					/>
+					<!-- Visual handle indicator overlay -->
+					<div class="absolute top-1/2 pointer-events-none slider-handle-indicator" style="left: calc({(sliderValue - MIN_CRF) / (MAX_CRF - MIN_CRF) * 100}% - 16px);">
+						<div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg flex items-center justify-center">
+							<div class="h-3 w-1 bg-cyan-400 rounded"></div>
+						</div>
+					</div>
+				</div>
 				<div class="flex justify-between text-xs text-gray-500 mt-1">
 					<span>Small File</span>
 					<span>High Quality</span>
@@ -92,25 +100,48 @@
 <style>
 	.slider-cyan::-webkit-slider-thumb {
 		appearance: none;
-		width: 18px;
-		height: 18px;
+		width: 32px;
+		height: 32px;
 		border-radius: 50%;
-		background: #06b6d4; /* cyan-500 */
+		background: transparent;
 		cursor: pointer;
-		border: 2px solid #111827; /* gray-900 */
+		border: none;
+		position: relative;
+		z-index: 10;
+	}
+
+	@media (min-width: 640px) {
+		.slider-cyan::-webkit-slider-thumb {
+			width: 40px;
+			height: 40px;
+		}
 	}
 
 	.slider-cyan::-moz-range-thumb {
-		width: 18px;
-		height: 18px;
+		width: 32px;
+		height: 32px;
 		border-radius: 50%;
-		background: #06b6d4; /* cyan-500 */
+		background: transparent;
 		cursor: pointer;
-		border: 2px solid #111827; /* gray-900 */
+		border: none;
+		position: relative;
+		z-index: 10;
+	}
+
+	@media (min-width: 640px) {
+		.slider-cyan::-moz-range-thumb {
+			width: 40px;
+			height: 40px;
+		}
 	}
 
 	.slider-cyan::-moz-range-track {
 		background: #374151; /* gray-700 */
+	}
+
+	.slider-handle-indicator {
+		transform: translateY(-50%);
+		transition: left 0.1s ease;
 	}
 </style>
 
