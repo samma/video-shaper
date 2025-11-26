@@ -184,7 +184,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
-	<div class="max-w-4xl mx-auto py-4 sm:py-8">
+	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-4 sm:mb-8">
 			{title}
 		</h1>
@@ -437,5 +437,5 @@
 				</div>
 			{/if}
 		</div>
-	</div>
+	</main>
 </div>
