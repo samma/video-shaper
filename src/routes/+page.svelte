@@ -158,6 +158,31 @@
 	}
 </script>
 
+<svelte:head>
+	{@html `<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "WebApplication",
+		"name": "Free Video Shaper",
+		"description": "Free browser-based video editor for trimming and compressing videos",
+		"url": "https://video.shaper.samma.no",
+		"applicationCategory": "MultimediaApplication",
+		"operatingSystem": "Web Browser",
+		"offers": {
+			"@type": "Offer",
+			"price": "0",
+			"priceCurrency": "USD"
+		},
+		"featureList": [
+			"Trim videos",
+			"Compress videos",
+			"Client-side processing",
+			"No uploads required"
+		]
+	}
+	</script>`}
+</svelte:head>
+
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<div class="max-w-4xl mx-auto py-4 sm:py-8">
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-4 sm:mb-8">
