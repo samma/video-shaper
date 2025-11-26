@@ -8,7 +8,7 @@
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
 
-	let title = 'Video Shaper';
+	let title = 'Free Video Shaper';
 	let ffmpegService: FFmpegService | null = null;
 	let ffmpegError = '';
 	let ffmpegLoading = false;
@@ -175,7 +175,7 @@
 					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
 						<div class="space-y-3 text-sm sm:text-base text-gray-300">
 							<p>
-								<strong class="text-cyan-400">Video Shaper</strong> is a client-side video editor that runs entirely in your browser. 
+								<strong class="text-cyan-400">Video Shaper</strong> is a completely free video editor that runs entirely in your browser. 
 								All processing happens on your device - videos never leave your computer.
 							</p>
 							
@@ -261,7 +261,7 @@
 					</div>
 
 					<!-- Disclaimer Card (Collapsible) -->
-					<div class="mt-3 sm:mt-4 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
+					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
 						<button
 							on:click={() => (disclaimerExpanded = !disclaimerExpanded)}
 							class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
