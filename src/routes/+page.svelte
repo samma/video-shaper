@@ -485,6 +485,9 @@
 											Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
 											that may occur during video processing. Use at your own risk.
 										</p>
+										<p class="mt-3 text-gray-500 italic">
+											This project was coded 100% with Cursor using the Composer 1 model.
+										</p>
 									</div>
 
 									<div class="border-t border-gray-600 pt-4">
@@ -532,6 +535,12 @@
 										</ul>
 										<p class="mt-4 text-gray-500 italic">
 											For complete license information, please refer to the LICENSE files in each library's repository or the node_modules directory.
+										</p>
+									</div>
+
+									<div class="border-t border-gray-600 pt-4">
+										<p class="text-gray-400">
+											Source code available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
 										</p>
 									</div>
 								</div>
