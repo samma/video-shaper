@@ -169,16 +169,16 @@
 
 <div class="timeline-slider w-full">
 	<div class="mb-2 flex justify-between text-base sm:text-lg font-bold text-white">
-		<span class="text-cyan-400">{formatTime(startTime)}</span>
+		<span class="text-teal-400">{formatTime(startTime)}</span>
 		<span class="text-teal-300">{formatTime(endTime - startTime)}</span>
-		<span class="text-cyan-400">{formatTime(endTime)}</span>
+		<span class="text-teal-400">{formatTime(endTime)}</span>
 	</div>
 
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		bind:this={containerElement}
-		class="relative h-12 select-none {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+		class="relative h-8 select-none {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 		on:click={handleClick}
 		aria-label="Video timeline"
 		aria-disabled={disabled}
@@ -188,14 +188,14 @@
 
 		<!-- Selected range -->
 		<div
-			class="absolute top-0 h-full rounded-full bg-cyan-500 {isDraggingStart || isDraggingEnd || isDraggingRange ? '' : 'transition-all'}"
+			class="absolute top-0 h-full rounded-full bg-teal-600 {isDraggingStart || isDraggingEnd || isDraggingRange ? '' : 'transition-all'}"
 			style="left: {startPercent}%; width: {rangeWidth}%"
 		></div>
 
 		<!-- Start handle -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
-			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingStart ? '' : 'transition-all'}"
+			class="absolute top-1/2 h-7 w-7 sm:h-8 sm:w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingStart ? '' : 'transition-all'}"
 			style="left: {startPercent}%"
 			on:mousedown={(e) => {
 				e.stopPropagation();
@@ -208,14 +208,14 @@
 			aria-label="Start time: {formatTime(startTime)}"
 		>
 			<div class="absolute inset-0 flex items-center justify-center">
-				<div class="h-3 w-1 bg-cyan-400 rounded"></div>
+				<div class="h-2.5 w-0.5 bg-teal-600 rounded"></div>
 			</div>
 		</div>
 
 		<!-- End handle -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
-			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingEnd ? '' : 'transition-all'}"
+			class="absolute top-1/2 h-7 w-7 sm:h-8 sm:w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingEnd ? '' : 'transition-all'}"
 			style="left: {endPercent}%"
 			on:mousedown={(e) => {
 				e.stopPropagation();
@@ -228,7 +228,7 @@
 			aria-label="End time: {formatTime(endTime)}"
 		>
 			<div class="absolute inset-0 flex items-center justify-center">
-				<div class="h-3 w-1 bg-cyan-400 rounded"></div>
+				<div class="h-2.5 w-0.5 bg-teal-600 rounded"></div>
 			</div>
 		</div>
 

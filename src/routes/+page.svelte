@@ -21,6 +21,9 @@
 	let endTime: number = 0;
 	let videoPreviewComponent: any = null;
 
+	// Trim state
+	let trimEnabled: boolean = true; // Enabled by default
+
 	// Compression state
 	let compressionEnabled: boolean = false;
 	let crf: number = 23;
@@ -39,6 +42,7 @@
 	let processing: boolean = false;
 	let processingProgress: number = 0;
 	let processingError: string = '';
+	let processingWarning: string = '';
 
 	// Accordion state
 	let limitationsExpanded: boolean = false;
@@ -51,6 +55,16 @@
 		processing = false;
 		processingProgress = 0;
 		processingError = 'Operation cancelled';
+		processingWarning = '';
+	}
+
+	function handleProceedWithWarning() {
+		processingWarning = '';
+		handleProcess();
+	}
+
+	function handleDismissWarning() {
+		processingWarning = '';
 	}
 
 	// Computed: estimated output file size
@@ -58,7 +72,7 @@
 		? estimateOutputFileSize(
 			selectedFile.size,
 			videoDuration,
-			endTime - startTime,
+			trimEnabled ? (endTime - startTime) : videoDuration,
 			compressionEnabled,
 			crf,
 			videoWidth,
@@ -93,7 +107,9 @@
 		// Reset trim times
 		startTime = 0;
 		endTime = 0;
+		trimEnabled = true; // Reset to enabled
 		processingError = '';
+		processingWarning = '';
 		videoDuration = 0; // Reset duration to show loading state
 		// Reset compression
 		compressionEnabled = false;
@@ -211,29 +227,30 @@
 	async function handleProcess() {
 		if (!ffmpegService || !selectedFile) return;
 
-		// Warn about large files with compression
+		// Check for warnings about large files with compression
+		processingWarning = '';
 		if (compressionEnabled) {
 			const fileSizeMB = selectedFile.size / (1024 * 1024);
-			const trimmedDuration = endTime - startTime;
+			const processedDuration = trimEnabled ? (endTime - startTime) : videoDuration;
 			const originalDuration = videoDuration;
-			const estimatedTrimmedSizeMB = (fileSizeMB * trimmedDuration) / originalDuration;
+			const estimatedProcessedSizeMB = (fileSizeMB * processedDuration) / originalDuration;
 
-			// Warn if file is large (either original or trimmed portion)
-			if (fileSizeMB > 100 || estimatedTrimmedSizeMB > 50) {
-				const message =
+			// Warn if file is large (either original or processed portion)
+			if (fileSizeMB > 100 || estimatedProcessedSizeMB > 50) {
+				const durationLabel = trimEnabled ? 'trimmed' : 'full video';
+				processingWarning =
 					`Large file detected (${formatFileSizeMB(selectedFile.size)} original, ` +
-					`~${formatFileSizeMB(estimatedTrimmedSizeMB * 1024 * 1024)} trimmed). ` +
-					`Compression may fail or take a very long time due to browser memory limits. ` +
-					`Continue anyway?`;
-				if (!confirm(message)) {
-					return;
-				}
+					`~${formatFileSizeMB(estimatedProcessedSizeMB * 1024 * 1024)} ${durationLabel}). ` +
+					`Compression may fail or take a very long time due to browser memory limits.`;
+				return; // Don't proceed, show warning instead
 			}
 		}
 
+		// Clear any previous warnings/errors and proceed
+		processingWarning = '';
+		processingError = '';
 		processing = true;
 		processingProgress = 0;
-		processingError = '';
 
 		try {
 			// Set up progress tracking
@@ -243,8 +260,8 @@
 
 			// Build trim options with optional crop
 			const trimOptions: any = {
-				startTime,
-				duration: endTime - startTime,
+				startTime: trimEnabled ? startTime : 0,
+				duration: trimEnabled ? (endTime - startTime) : videoDuration,
 				compressionEnabled,
 				crf
 			};
@@ -324,7 +341,7 @@
 			{title}
 		</h1>
 		<p class="text-center text-cyan-300 text-sm sm:text-base md:text-lg font-medium mb-4 sm:mb-8 tracking-wide">
-			Trim, Crop & Compress videos for free • No Uploads • No Transfers • 100% Private
+			Trim, Crop and Compress videos for free • No Uploads • No Transfers • 100% Private
 		</p>
 
 		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
@@ -545,10 +562,12 @@
 						/>
 
 						<TrimControls
+							bind:trimEnabled
 							duration={videoDuration}
 							bind:startTime
 							bind:endTime
 							disabled={processing}
+							onTrimToggle={(enabled) => (trimEnabled = enabled)}
 							onStartChange={(time) => (startTime = time)}
 							onEndChange={(time) => (endTime = time)}
 							onSeek={seekVideo}
@@ -569,7 +588,10 @@
 							bind:compressionEnabled
 							bind:crf
 							disabled={processing}
-							onCompressionToggle={(enabled) => (compressionEnabled = enabled)}
+							onCompressionToggle={(enabled) => {
+								compressionEnabled = enabled;
+								processingWarning = ''; // Clear warning when compression is toggled
+							}}
 							onCrfChange={(value) => (crf = value)}
 						/>
 
@@ -590,12 +612,40 @@
 							</div>
 						{/if}
 
+						{#if processingWarning}
+							<div class="bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 sm:p-4 mb-4">
+								<div class="flex items-start gap-3">
+									<svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+									</svg>
+									<div class="flex-1">
+										<p class="text-yellow-200 font-semibold text-sm sm:text-base mb-1">Warning</p>
+										<p class="text-yellow-300 text-xs sm:text-sm mb-3">{processingWarning}</p>
+										<div class="flex gap-2">
+											<button
+												on:click={handleProceedWithWarning}
+												class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-semibold rounded transition-colors"
+											>
+												Continue Anyway
+											</button>
+											<button
+												on:click={handleDismissWarning}
+												class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-semibold rounded transition-colors"
+											>
+												Cancel
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						{/if}
+
 						<ProcessButton
 							onProcess={handleProcess}
 							onCancel={handleCancel}
 							{processing}
 							progress={processingProgress}
-							disabled={!ffmpegService || videoDuration === 0}
+							disabled={!ffmpegService || videoDuration === 0 || !!processingWarning}
 						/>
 
 						{#if processingError}
