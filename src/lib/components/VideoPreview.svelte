@@ -16,10 +16,12 @@
 	export let cropWidth: number = 0;
 	export let cropHeight: number = 0;
 	export let aspectRatioLocked: boolean = false;
-	// These are used internally for calculations but passed from parent
-	// eslint-disable-next-line no-unused-vars
+	// These props are passed from parent but not used internally
+	// Dimensions are read directly from video element via getVideoDisplayInfo()
+	// Kept for API consistency with parent component
+	// svelte-ignore a11y-unknown-attribute
 	export let videoWidth: number = 0;
-	// eslint-disable-next-line no-unused-vars
+	// svelte-ignore a11y-unknown-attribute
 	export let videoHeight: number = 0;
 	// eslint-disable-next-line no-unused-vars
 	export let onCropChange: (x: number, y: number, width: number, height: number) => void = () => {};
@@ -161,10 +163,163 @@
 
 	let currentCursor: string = 'default';
 	
-	function getCursorStyle(): string {
-		if (!cropEnabled) return 'default';
+	// Constants for crop interaction
+	const BORDER_THICKNESS = 4;
+	const HITBOX_SIZE = 20;
+	const MIN_CROP_SIZE = 50;
+	
+	// Get crop border coordinates in display space
+	function getCropBorderCoords() {
+		const info = getVideoDisplayInfo();
+		if (!info) return null;
+		
+		const displayCropX = info.displayX + (cropX / info.scaleX);
+		const displayCropY = info.displayY + (cropY / info.scaleY);
+		const displayCropWidth = cropWidth / info.scaleX;
+		const displayCropHeight = cropHeight / info.scaleY;
+		
+		const borderInnerLeft = displayCropX;
+		const borderInnerRight = displayCropX + displayCropWidth;
+		const borderInnerTop = displayCropY;
+		const borderInnerBottom = displayCropY + displayCropHeight;
+		const borderOuterLeft = borderInnerLeft - BORDER_THICKNESS;
+		const borderOuterRight = borderInnerRight + BORDER_THICKNESS;
+		const borderOuterTop = borderInnerTop - BORDER_THICKNESS;
+		const borderOuterBottom = borderInnerBottom + BORDER_THICKNESS;
+		
+		const hitboxLeft = borderOuterLeft - HITBOX_SIZE;
+		const hitboxRight = borderOuterRight + HITBOX_SIZE;
+		const hitboxTop = borderOuterTop - HITBOX_SIZE;
+		const hitboxBottom = borderOuterBottom + HITBOX_SIZE;
+		
+		return {
+			borderInnerLeft,
+			borderInnerRight,
+			borderInnerTop,
+			borderInnerBottom,
+			hitboxLeft,
+			hitboxRight,
+			hitboxTop,
+			hitboxBottom
+		};
+	}
+	
+	// Detect which interaction area the mouse is over
+	function detectInteractionArea(mouseX: number, mouseY: number): 'corner' | 'edge' | 'inside' | 'outside' | null {
+		const coords = getCropBorderCoords();
+		if (!coords) return null;
+		
+		const { borderInnerLeft, borderInnerRight, borderInnerTop, borderInnerBottom } = coords;
+		
+		// Check if outside hitbox
+		if (mouseX < coords.hitboxLeft || mouseX > coords.hitboxRight || 
+			mouseY < coords.hitboxTop || mouseY > coords.hitboxBottom) {
+			return 'outside';
+		}
+		
+		// Check corners
+		const cornerHitbox = HITBOX_SIZE;
+		const isTopLeft = mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox &&
+			mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox;
+		const isTopRight = mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox &&
+			mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox;
+		const isBottomLeft = mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox &&
+			mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox;
+		const isBottomRight = mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox &&
+			mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox;
+		
+		if (isTopLeft || isTopRight || isBottomLeft || isBottomRight) {
+			return 'corner';
+		}
+		
+		// Check edges
+		const isTopEdge = mouseY >= borderInnerTop - HITBOX_SIZE && mouseY <= borderInnerTop + HITBOX_SIZE &&
+			mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox;
+		const isBottomEdge = mouseY >= borderInnerBottom - HITBOX_SIZE && mouseY <= borderInnerBottom + HITBOX_SIZE &&
+			mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox;
+		const isLeftEdge = mouseX >= borderInnerLeft - HITBOX_SIZE && mouseX <= borderInnerLeft + HITBOX_SIZE &&
+			mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox;
+		const isRightEdge = mouseX >= borderInnerRight - HITBOX_SIZE && mouseX <= borderInnerRight + HITBOX_SIZE &&
+			mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox;
+		
+		if (isTopEdge || isBottomEdge || isLeftEdge || isRightEdge) {
+			return 'edge';
+		}
+		
+		// Check inside
+		if (mouseX >= borderInnerLeft && mouseX <= borderInnerRight &&
+			mouseY >= borderInnerTop && mouseY <= borderInnerBottom) {
+			return 'inside';
+		}
+		
+		return 'outside';
+	}
+	
+	// Get resize handle based on mouse position
+	function getResizeHandle(mouseX: number, mouseY: number): string | null {
+		const coords = getCropBorderCoords();
+		if (!coords) return null;
+		
+		const { borderInnerLeft, borderInnerRight, borderInnerTop, borderInnerBottom } = coords;
+		const cornerHitbox = HITBOX_SIZE;
+		
+		// Check corners
+		if (mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox &&
+			mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox) {
+			return 'nw';
+		}
+		if (mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox &&
+			mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox) {
+			return 'ne';
+		}
+		if (mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox &&
+			mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox) {
+			return 'sw';
+		}
+		if (mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox &&
+			mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox) {
+			return 'se';
+		}
+		
+		// Check edges
+		if (mouseY >= borderInnerTop - HITBOX_SIZE && mouseY <= borderInnerTop + HITBOX_SIZE &&
+			mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox) {
+			return 'n';
+		}
+		if (mouseY >= borderInnerBottom - HITBOX_SIZE && mouseY <= borderInnerBottom + HITBOX_SIZE &&
+			mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox) {
+			return 's';
+		}
+		if (mouseX >= borderInnerLeft - HITBOX_SIZE && mouseX <= borderInnerLeft + HITBOX_SIZE &&
+			mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox) {
+			return 'w';
+		}
+		if (mouseX >= borderInnerRight - HITBOX_SIZE && mouseX <= borderInnerRight + HITBOX_SIZE &&
+			mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox) {
+			return 'e';
+		}
+		
+		return null;
+	}
+	
+	// Get cursor style based on interaction area
+	function getCursorForArea(area: 'corner' | 'edge' | 'inside' | 'outside' | null, mouseX: number, mouseY: number): string {
+		if (!cropEnabled || area === 'outside' || area === null) return 'default';
 		if (isDragging || isResizing) return 'grabbing';
-		return currentCursor;
+		
+		if (area === 'corner') {
+			const handle = getResizeHandle(mouseX, mouseY);
+			if (handle === 'nw' || handle === 'se') return 'nwse-resize';
+			if (handle === 'ne' || handle === 'sw') return 'nesw-resize';
+		}
+		if (area === 'edge') {
+			const handle = getResizeHandle(mouseX, mouseY);
+			if (handle === 'n' || handle === 's') return 'ns-resize';
+			if (handle === 'e' || handle === 'w') return 'ew-resize';
+		}
+		if (area === 'inside') return 'move';
+		
+		return 'default';
 	}
 	
 	function handleMouseMoveForCursor(event: MouseEvent) {
@@ -177,58 +332,29 @@
 		const mouseX = event.clientX - rect.left;
 		const mouseY = event.clientY - rect.top;
 		
-		const info = getVideoDisplayInfo();
-		if (!info) {
-			currentCursor = 'default';
-			return;
-		}
-		
-		const displayCropX = info.displayX + (cropX / info.scaleX);
-		const displayCropY = info.displayY + (cropY / info.scaleY);
-		const displayCropWidth = cropWidth / info.scaleX;
-		const displayCropHeight = cropHeight / info.scaleY;
-		
-		// Border inner edge aligns with crop area, hitbox extends inside and outside
-		const borderThickness = 4;
-		const hitboxSize = 20;
-		const borderInnerLeft = displayCropX;
-		const borderInnerRight = displayCropX + displayCropWidth;
-		const borderInnerTop = displayCropY;
-		const borderInnerBottom = displayCropY + displayCropHeight;
-		const borderOuterLeft = borderInnerLeft - borderThickness;
-		const borderOuterRight = borderInnerRight + borderThickness;
-		const borderOuterTop = borderInnerTop - borderThickness;
-		const borderOuterBottom = borderInnerBottom + borderThickness;
-		
-		// Hitbox extends hitboxSize inside and outside the border
-		const hitboxLeft = borderOuterLeft - hitboxSize;
-		const hitboxRight = borderOuterRight + hitboxSize;
-		const hitboxTop = borderOuterTop - hitboxSize;
-		const hitboxBottom = borderOuterBottom + hitboxSize;
-		
-		// Determine cursor based on position relative to border edges
-		const cornerHitbox = hitboxSize;
-		// Check corners (relative to border inner edges)
-		if ((mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox && mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox) ||
-			(mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox && mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox)) {
-			currentCursor = 'nwse-resize';
-		} else if ((mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox && mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox) ||
-			(mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox && mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox)) {
-			currentCursor = 'nesw-resize';
-		} else if ((mouseY >= borderInnerTop - hitboxSize && mouseY <= borderInnerTop + hitboxSize && mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox) ||
-			(mouseY >= borderInnerBottom - hitboxSize && mouseY <= borderInnerBottom + hitboxSize && mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox)) {
-			currentCursor = 'ns-resize';
-		} else if ((mouseX >= borderInnerLeft - hitboxSize && mouseX <= borderInnerLeft + hitboxSize && mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox) ||
-			(mouseX >= borderInnerRight - hitboxSize && mouseX <= borderInnerRight + hitboxSize && mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox)) {
-			currentCursor = 'ew-resize';
-		} else if (mouseX >= borderInnerLeft && mouseX <= borderInnerRight &&
-			mouseY >= borderInnerTop && mouseY <= borderInnerBottom) {
-			currentCursor = 'move';
-		} else {
-			currentCursor = 'default';
-		}
+		const area = detectInteractionArea(mouseX, mouseY);
+		currentCursor = getCursorForArea(area, mouseX, mouseY);
 	}
 
+	function startResize(handle: string, mouseX: number, mouseY: number) {
+		isResizing = true;
+		resizeHandle = handle;
+		dragStartX = mouseX;
+		dragStartY = mouseY;
+		cropStartX = cropX;
+		cropStartY = cropY;
+		cropStartWidth = cropWidth;
+		cropStartHeight = cropHeight;
+	}
+	
+	function startDrag(mouseX: number, mouseY: number) {
+		isDragging = true;
+		dragStartX = mouseX;
+		dragStartY = mouseY;
+		cropStartX = cropX;
+		cropStartY = cropY;
+	}
+	
 	function handleMouseDown(event: MouseEvent) {
 		if (!cropEnabled || !videoElement) return;
 		
@@ -236,163 +362,18 @@
 		const mouseX = event.clientX - rect.left;
 		const mouseY = event.clientY - rect.top;
 		
-		const info = getVideoDisplayInfo();
-		if (!info) return;
+		const area = detectInteractionArea(mouseX, mouseY);
+		if (area === 'outside' || area === null) return;
 		
-		const displayCropX = info.displayX + (cropX / info.scaleX);
-		const displayCropY = info.displayY + (cropY / info.scaleY);
-		const displayCropWidth = cropWidth / info.scaleX;
-		const displayCropHeight = cropHeight / info.scaleY;
+		event.preventDefault();
 		
-		// Border inner edge aligns with crop area, hitbox extends inside and outside
-		const borderThickness = 4;
-		const hitboxSize = 20;
-		const borderInnerLeft = displayCropX;
-		const borderInnerRight = displayCropX + displayCropWidth;
-		const borderInnerTop = displayCropY;
-		const borderInnerBottom = displayCropY + displayCropHeight;
-		
-		// Hitbox extends hitboxSize inside and outside the border
-		const hitboxLeft = borderInnerLeft - borderThickness - hitboxSize;
-		const hitboxRight = borderInnerRight + borderThickness + hitboxSize;
-		const hitboxTop = borderInnerTop - borderThickness - hitboxSize;
-		const hitboxBottom = borderInnerBottom + borderThickness + hitboxSize;
-		
-		// Check if mouse is within hitbox area
-		if (mouseX < hitboxLeft || mouseX > hitboxRight || mouseY < hitboxTop || mouseY > hitboxBottom) {
-			return; // Outside hitbox
-		}
-		
-		// Check corners first (they take priority) - relative to border inner edges
-		const cornerHitbox = hitboxSize;
-		if (mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox && 
-			mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox) {
-			// Top-left corner
-			isResizing = true;
-			resizeHandle = 'nw';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		if (mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox && 
-			mouseY >= borderInnerTop - cornerHitbox && mouseY <= borderInnerTop + cornerHitbox) {
-			// Top-right corner
-			isResizing = true;
-			resizeHandle = 'ne';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		if (mouseX >= borderInnerLeft - cornerHitbox && mouseX <= borderInnerLeft + cornerHitbox && 
-			mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox) {
-			// Bottom-left corner
-			isResizing = true;
-			resizeHandle = 'sw';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		if (mouseX >= borderInnerRight - cornerHitbox && mouseX <= borderInnerRight + cornerHitbox && 
-			mouseY >= borderInnerBottom - cornerHitbox && mouseY <= borderInnerBottom + cornerHitbox) {
-			// Bottom-right corner
-			isResizing = true;
-			resizeHandle = 'se';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		
-		// Check edges (excluding corner areas) - relative to border inner edges
-		if (mouseY >= borderInnerTop - hitboxSize && mouseY <= borderInnerTop + hitboxSize && 
-			mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox) {
-			// Top edge
-			isResizing = true;
-			resizeHandle = 'n';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		if (mouseY >= borderInnerBottom - hitboxSize && mouseY <= borderInnerBottom + hitboxSize && 
-			mouseX >= borderInnerLeft + cornerHitbox && mouseX <= borderInnerRight - cornerHitbox) {
-			// Bottom edge
-			isResizing = true;
-			resizeHandle = 's';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		if (mouseX >= borderInnerLeft - hitboxSize && mouseX <= borderInnerLeft + hitboxSize && 
-			mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox) {
-			// Left edge
-			isResizing = true;
-			resizeHandle = 'w';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		if (mouseX >= borderInnerRight - hitboxSize && mouseX <= borderInnerRight + hitboxSize && 
-			mouseY >= borderInnerTop + cornerHitbox && mouseY <= borderInnerBottom - cornerHitbox) {
-			// Right edge
-			isResizing = true;
-			resizeHandle = 'e';
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			cropStartWidth = cropWidth;
-			cropStartHeight = cropHeight;
-			event.preventDefault();
-			return;
-		}
-		
-		// Check if clicking inside crop area (for dragging)
-		if (
-			mouseX >= borderInnerLeft &&
-			mouseX <= borderInnerRight &&
-			mouseY >= borderInnerTop &&
-			mouseY <= borderInnerBottom
-		) {
-			isDragging = true;
-			dragStartX = mouseX;
-			dragStartY = mouseY;
-			cropStartX = cropX;
-			cropStartY = cropY;
-			event.preventDefault();
+		if (area === 'corner' || area === 'edge') {
+			const handle = getResizeHandle(mouseX, mouseY);
+			if (handle) {
+				startResize(handle, mouseX, mouseY);
+			}
+		} else if (area === 'inside') {
+			startDrag(mouseX, mouseY);
 		}
 	}
 
@@ -466,9 +447,8 @@
 			}
 			
 			// Constrain to video bounds and minimum size
-			const minSize = 50;
-			newWidth = Math.max(minSize, Math.min(info.naturalWidth - newX, newWidth));
-			newHeight = Math.max(minSize, Math.min(info.naturalHeight - newY, newHeight));
+			newWidth = Math.max(MIN_CROP_SIZE, Math.min(info.naturalWidth - newX, newWidth));
+			newHeight = Math.max(MIN_CROP_SIZE, Math.min(info.naturalHeight - newY, newHeight));
 			
 			if (newX < 0) {
 				newWidth += newX;
@@ -565,19 +545,17 @@
 				{@const displayHeight = currentCropHeight / info.scaleY}
 				
 				<!-- Crop rectangle border with large hitbox - border inner edge aligns with crop area -->
-				{@const hitboxSize = 20}
-				{@const borderThickness = 4}
 				<!-- Border inner edge aligns with crop area at displayX, displayY -->
 				<!-- Hitbox extends hitboxSize inside and outside the border -->
 				<!-- Wrapper div for hitbox area -->
 				<div
 					class="absolute pointer-events-auto"
-					style="left: {displayX - borderThickness - hitboxSize}px; top: {displayY - borderThickness - hitboxSize}px; width: {displayWidth + borderThickness * 2 + hitboxSize * 2}px; height: {displayHeight + borderThickness * 2 + hitboxSize * 2}px; padding: {hitboxSize}px; box-sizing: border-box;"
+					style="left: {displayX - BORDER_THICKNESS - HITBOX_SIZE}px; top: {displayY - BORDER_THICKNESS - HITBOX_SIZE}px; width: {displayWidth + BORDER_THICKNESS * 2 + HITBOX_SIZE * 2}px; height: {displayHeight + BORDER_THICKNESS * 2 + HITBOX_SIZE * 2}px; padding: {HITBOX_SIZE}px; box-sizing: border-box;"
 				>
 					<!-- Border div - inner edge aligns with crop area -->
 					<div
 						class="border-cyan-400 w-full h-full"
-						style="border-width: {borderThickness}px; border-style: solid; box-shadow: 0 0 0 {borderThickness}px rgba(0, 0, 0, 0.3), 0 0 0 {borderThickness + 2}px rgba(6, 182, 212, 0.2); border-radius: 4px; box-sizing: border-box;"
+						style="border-width: {BORDER_THICKNESS}px; border-style: solid; box-shadow: 0 0 0 {BORDER_THICKNESS}px rgba(0, 0, 0, 0.3), 0 0 0 {BORDER_THICKNESS + 2}px rgba(6, 182, 212, 0.2); border-radius: 4px; box-sizing: border-box;"
 					></div>
 				</div>
 			{/if}

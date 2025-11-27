@@ -71,11 +71,12 @@ describe('FFmpegService Instance Methods', () => {
 		expect(typeof service.onProgress).toBe('function');
 	});
 
-	it('should reject trimVideo when not initialized', async () => {
+	it('should auto-initialize when trimVideo is called without initialization', async () => {
 		const mockFile = new File(['test'], 'test.mp4', { type: 'video/mp4' });
-		await expect(service.trimVideo(mockFile, { startTime: 0, duration: 10 })).rejects.toThrow(
-			'FFmpeg is not loaded'
-		);
+		// trimVideo should auto-initialize and succeed (with mocked FFmpeg)
+		const result = await service.trimVideo(mockFile, { startTime: 0, duration: 10 });
+		expect(result).toBeInstanceOf(Blob);
+		expect(service.isLoaded()).toBe(true);
 	});
 });
 
