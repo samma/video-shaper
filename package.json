@@ -1,8 +1,8 @@
 {
 	"name": "video-shaper",
 	"version": "0.0.1",
-	"private": true,
 	"type": "module",
+	"author": "samma@samma.no",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

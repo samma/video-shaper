@@ -1,13 +1,16 @@
 # Video Shaper
 
-A client-side video editor that runs entirely in your browser. Trim videos without uploading them to any server.
+A client-side video editor that runs entirely in your browser. Trim, crop, and compress videos without uploading them to any server.
 
 ## Features
 
 - **100% Client-Side Processing** - Videos never leave your computer
 - **No Server Costs** - All processing happens in your browser using ffmpeg.wasm
-- **Simple Interface** - Easy-to-use trim controls with video preview
-- **Keyboard Shortcuts** - Space to play/pause, arrow keys to seek
+- **Trim Videos** - Select specific time ranges with an intuitive timeline slider
+- **Crop Videos** - Adjust frame dimensions and aspect ratio with visual crop controls
+- **Compress Videos** - Reduce file size with adjustable quality settings
+- **Simple Interface** - Easy-to-use controls with video preview
+- **Privacy-First** - No uploads, no transfers, complete privacy
 
 ## Tech Stack
 
@@ -75,5 +78,9 @@ The app will automatically deploy on every push to your main branch.
 ## License
 
 MIT
+
+## Contact
+
+For questions, security issues, or contributions, please contact samma@samma.no or open an issue on GitHub.
 
 
