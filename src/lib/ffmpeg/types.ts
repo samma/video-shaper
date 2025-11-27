@@ -1,6 +1,7 @@
 export interface FFmpegProgress {
 	ratio: number; // 0 to 1
 	time?: number; // current time in seconds
+	status?: string; // optional status message
 }
 
 export interface CropOptions {

@@ -11,7 +11,8 @@
 		"test:watch": "vitest",
 		"test:e2e": "playwright test",
 		"lint": "eslint .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"download-ffmpeg": "node scripts/download-ffmpeg.js"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.1",

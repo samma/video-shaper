@@ -6,6 +6,7 @@
 	export let processing: boolean = false;
 	export let progress: number = 0;
 	export let disabled: boolean = false;
+	export let status: string = '';
 
 	$: buttonDisabled = disabled || processing;
 </script>
@@ -22,24 +23,29 @@
 			disabled
 			class="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white bg-teal-500 cursor-wait transition-all"
 		>
-			<span class="flex items-center justify-center gap-2">
-				<svg class="animate-spin h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
-					<circle
-						class="opacity-25"
-						cx="12"
-						cy="12"
-						r="10"
-						stroke="currentColor"
-						stroke-width="4"
-						fill="none"
-					></circle>
-					<path
-						class="opacity-75"
-						fill="currentColor"
-						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-					></path>
-				</svg>
-				<span>Processing... {Math.round(progress * 100)}%</span>
+			<span class="flex flex-col items-center justify-center gap-1">
+				<span class="flex items-center justify-center gap-2">
+					<svg class="animate-spin h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
+						<circle
+							class="opacity-25"
+							cx="12"
+							cy="12"
+							r="10"
+							stroke="currentColor"
+							stroke-width="4"
+							fill="none"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					<span>Processing... {Math.round(progress * 100)}%</span>
+				</span>
+				{#if status}
+					<span class="text-xs text-teal-100 opacity-90 font-normal">{status}</span>
+				{/if}
 			</span>
 		</button>
 	{:else}

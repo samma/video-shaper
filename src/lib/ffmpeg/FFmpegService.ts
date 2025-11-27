@@ -18,12 +18,43 @@ function debugError(...args: any[]) {
 	}
 }
 
+/**
+ * Parse FFmpeg log message to extract a simplified status message
+ */
+function parseStatusFromLog(message: string): string | null {
+	const msg = message.toLowerCase();
+	
+	// Detect frame encoding progress
+	if (msg.includes('frame=') || msg.includes('fps=')) {
+		return 'Encoding video...';
+	}
+	
+	// Detect compression/encoding start
+	if (msg.includes('encoding') || msg.includes('stream #0')) {
+		return 'Compressing video...';
+	}
+	
+	// Detect muxing/finalization
+	if (msg.includes('muxing') || msg.includes('moving the moov atom') || msg.includes('faststart')) {
+		return 'Finalizing...';
+	}
+	
+	// Detect file operations
+	if (msg.includes('input') || msg.includes('output')) {
+		return 'Processing...';
+	}
+	
+	return null;
+}
+
 export class FFmpegService {
 	private ffmpeg: FFmpeg;
 	private loadStatus: FFmpegLoadStatus = 'unloaded';
 	private loadProgress: number = 0;
 	private onProgressCallback?: (progress: FFmpegProgress) => void;
+	private onStatusCallback?: (status: string) => void;
 	private isCancelled: boolean = false;
+	private currentStatus: string = '';
 
 	constructor() {
 		this.ffmpeg = new FFmpeg();
@@ -51,6 +82,13 @@ export class FFmpegService {
 			this.ffmpeg.on('log', ({ message }) => {
 				console.log('[FFmpeg]', message);
 				
+				// Parse status from log message
+				const parsedStatus = parseStatusFromLog(message);
+				if (parsedStatus && this.onStatusCallback) {
+					this.currentStatus = parsedStatus;
+					this.onStatusCallback(parsedStatus);
+				}
+				
 				// Detect second pass start
 				if (message.includes('Starting second pass') || message.includes('moving the moov atom')) {
 					secondPassStarted = true;
@@ -68,16 +106,43 @@ export class FFmpegService {
 
 			this.ffmpeg.on('progress', ({ progress, time }) => {
 				if (this.onProgressCallback) {
-					this.onProgressCallback({ ratio: progress, time });
+					this.onProgressCallback({ 
+						ratio: progress, 
+						time,
+						status: this.currentStatus || undefined
+					});
 				}
 			});
 
-			// Load the WebAssembly binary from CDN
-			const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+			// Try to load from local files first (self-hosted), fallback to CDN
+			// This ensures the app works even if unpkg.com is unavailable
+			const localBaseURL = '/ffmpeg-core';
+			const cdnBaseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+			
+			let coreURL: string;
+			let wasmURL: string;
+			
+			// Check if local files exist by attempting to fetch them
+			try {
+				const localCoreResponse = await fetch(`${localBaseURL}/ffmpeg-core.js`, { method: 'HEAD' });
+				if (localCoreResponse.ok) {
+					// Local files exist, use them
+					coreURL = await toBlobURL(`${localBaseURL}/ffmpeg-core.js`, 'text/javascript');
+					wasmURL = await toBlobURL(`${localBaseURL}/ffmpeg-core.wasm`, 'application/wasm');
+					console.log('[FFmpeg] Loading from local files (self-hosted)');
+				} else {
+					throw new Error('Local files not found');
+				}
+			} catch (error) {
+				// Local files not available, fallback to CDN
+				console.warn('[FFmpeg] Local files not found, falling back to CDN');
+				coreURL = await toBlobURL(`${cdnBaseURL}/ffmpeg-core.js`, 'text/javascript');
+				wasmURL = await toBlobURL(`${cdnBaseURL}/ffmpeg-core.wasm`, 'application/wasm');
+			}
 
 			await this.ffmpeg.load({
-				coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-				wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+				coreURL,
+				wasmURL
 			});
 
 			this.loadStatus = 'loaded';
@@ -101,6 +166,7 @@ export class FFmpegService {
 
 		// Reset cancellation flag
 		this.isCancelled = false;
+		this.currentStatus = '';
 
 		const inputName = 'input.mp4';
 		const outputName = 'output.mp4';
@@ -110,6 +176,27 @@ export class FFmpegService {
 			// Check if cancelled before starting
 			if (this.isCancelled) {
 				throw new Error('Operation cancelled');
+			}
+
+			// Clean up any existing files from previous operations
+			// This prevents FS errors from leftover files
+			try {
+				await this.ffmpeg.deleteFile(inputName);
+			} catch (e) {
+				// File doesn't exist, which is fine
+				debugLog('Input file does not exist (expected for first run)');
+			}
+			try {
+				await this.ffmpeg.deleteFile(outputName);
+			} catch (e) {
+				// File doesn't exist, which is fine
+				debugLog('Output file does not exist (expected for first run)');
+			}
+
+			// Notify status: loading file
+			if (this.onStatusCallback) {
+				this.currentStatus = 'Loading file...';
+				this.onStatusCallback(this.currentStatus);
 			}
 
 			// Write input file to FFmpeg's virtual filesystem
@@ -140,6 +227,11 @@ export class FFmpegService {
 				const cropY = Math.max(0, Math.floor(crop.y));
 				const cropWidth = Math.max(1, Math.floor(crop.width));
 				const cropHeight = Math.max(1, Math.floor(crop.height));
+				
+				// Validate crop dimensions are positive
+				if (cropWidth <= 0 || cropHeight <= 0) {
+					throw new Error(`Invalid crop dimensions: width=${cropWidth}, height=${cropHeight}`);
+				}
 				
 				// FFmpeg crop filter: crop=width:height:x:y
 				videoFilters.push(`crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`);
@@ -196,7 +288,23 @@ export class FFmpegService {
 				}
 			} else {
 				// Copy codec (fast, no re-encoding)
-				command.push('-c', 'copy');
+				// BUT: if crop is enabled, we must re-encode, so use libx264 instead
+				if (options.crop) {
+					// Crop requires re-encoding, so use a fast preset
+					command.push(
+						'-c:v',
+						'libx264',
+						'-preset',
+						'ultrafast',
+						'-crf',
+						'23', // Default quality when compression not explicitly enabled
+						'-c:a',
+						'copy'
+					);
+				} else {
+					// No crop, can use codec copy (fastest)
+					command.push('-c', 'copy');
+				}
 			}
 
 			// Add -y flag to overwrite output file if it exists
@@ -389,6 +497,25 @@ export class FFmpegService {
 				// Ignore cleanup errors
 			}
 			
+			// Check for FS/filesystem errors
+			if (
+				errorString.includes('fs error') ||
+				errorString.includes('errnoerror') ||
+				errorString.includes('filesystem') ||
+				errorString.includes('enoent') ||
+				errorString.includes('eexist') ||
+				errorString.includes('eacces')
+			) {
+				const cropInfo = options.crop 
+					? ` (crop: ${options.crop.width}x${options.crop.height} at ${options.crop.x},${options.crop.y})`
+					: '';
+				throw new Error(
+					`File system error during processing${cropInfo}. ` +
+					`This may occur if files from a previous operation weren't cleaned up properly. ` +
+					`Please try again, or refresh the page if the issue persists.`
+				);
+			}
+			
 			// Check for memory-related errors and abort errors
 			if (
 				errorString.includes('memory') ||
@@ -448,6 +575,13 @@ export class FFmpegService {
 	 */
 	onProgress(callback: (progress: FFmpegProgress) => void): void {
 		this.onProgressCallback = callback;
+	}
+
+	/**
+	 * Set callback for status message updates
+	 */
+	onStatus(callback: (status: string) => void): void {
+		this.onStatusCallback = callback;
 	}
 
 	/**

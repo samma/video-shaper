@@ -57,8 +57,10 @@
 		}
 		</script>
 		
+		<!-- GoatCounter Analytics - Non-blocking, fails gracefully if unavailable -->
 		<script data-goatcounter="https://samma.goatcounter.com/count"
-		        async src="//gc.zgo.at/count.js"></script>
+		        async src="//gc.zgo.at/count.js"
+		        onerror="console.warn('GoatCounter analytics failed to load - continuing without analytics')"></script>
 
 		%sveltekit.head%
 	</head>

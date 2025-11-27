@@ -41,19 +41,30 @@
 	// Processing state
 	let processing: boolean = false;
 	let processingProgress: number = 0;
+	let processingStatus: string = '';
 	let processingError: string = '';
 	let processingWarning: string = '';
+	
+	// Initial delay timeout for status message
+	let initialDelayTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Accordion state
 	let limitationsExpanded: boolean = false;
 	let disclaimerExpanded: boolean = false;
 
 	async function handleCancel() {
+		// Clean up timeouts
+		if (initialDelayTimeout !== null) {
+			clearTimeout(initialDelayTimeout);
+			initialDelayTimeout = null;
+		}
+		
 		if (ffmpegService) {
 			await ffmpegService.cancel();
 		}
 		processing = false;
 		processingProgress = 0;
+		processingStatus = '';
 		processingError = 'Operation cancelled';
 		processingWarning = '';
 	}
@@ -245,11 +256,52 @@
 		processingError = '';
 		processing = true;
 		processingProgress = 0;
+		processingStatus = '';
+
+		// Clean up any existing timeouts
+		if (initialDelayTimeout !== null) {
+			clearTimeout(initialDelayTimeout);
+		}
+
+		// Initial delay handling - show status if progress stays at 0% for >2 seconds
+		initialDelayTimeout = setTimeout(() => {
+			if (processingProgress === 0 && processing) {
+				if (!processingStatus || processingStatus === '') {
+					processingStatus = 'Analyzing video...';
+				}
+			}
+		}, 2000);
 
 		try {
+			// Set up status callback
+			ffmpegService.onStatus((status) => {
+				processingStatus = status;
+				// Clear initial delay timeout once we get a real status
+				if (initialDelayTimeout !== null) {
+					clearTimeout(initialDelayTimeout);
+					initialDelayTimeout = null;
+				}
+			});
+
 			// Set up progress tracking
 			ffmpegService.onProgress((progress) => {
 				processingProgress = progress.ratio;
+				
+				// Update status from progress if available
+				if (progress.status) {
+					processingStatus = progress.status;
+					// Clear initial delay timeout once we get a real status
+					if (initialDelayTimeout !== null) {
+						clearTimeout(initialDelayTimeout);
+						initialDelayTimeout = null;
+					}
+				}
+				
+				// Clear initial delay timeout if progress > 0
+				if (progress.ratio > 0 && initialDelayTimeout !== null) {
+					clearTimeout(initialDelayTimeout);
+					initialDelayTimeout = null;
+				}
 			});
 
 			// Build trim options with optional crop
@@ -285,7 +337,9 @@
 			document.body.removeChild(a);
 			URL.revokeObjectURL(downloadUrl);
 
+			// Set final progress
 			processingProgress = 1;
+			processingStatus = 'Complete';
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
 			// Don't show error if it was cancelled
@@ -296,6 +350,11 @@
 			}
 			console.error('Processing error:', error);
 		} finally {
+			// Clean up timeouts
+			if (initialDelayTimeout !== null) {
+				clearTimeout(initialDelayTimeout);
+				initialDelayTimeout = null;
+			}
 			processing = false;
 		}
 	}
@@ -643,6 +702,7 @@
 							onCancel={handleCancel}
 							{processing}
 							progress={processingProgress}
+							status={processingStatus}
 							disabled={!ffmpegService || videoDuration === 0}
 						/>
 
