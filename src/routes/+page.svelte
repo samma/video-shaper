@@ -164,7 +164,7 @@
 		"@context": "https://schema.org",
 		"@type": "WebApplication",
 		"name": "Free Video Shaper",
-		"description": "Free browser-based video editor for trimming and compressing videos",
+		"description": "Free browser-based video editor for trimming and compressing videos. No uploads required - videos are processed entirely in your browser and never leave your device.",
 		"url": "https://video.shaper.samma.no",
 		"applicationCategory": "MultimediaApplication",
 		"operatingSystem": "Web Browser",
@@ -176,8 +176,10 @@
 		"featureList": [
 			"Trim videos",
 			"Compress videos",
-			"Client-side processing",
-			"No uploads required"
+			"100% client-side processing",
+			"No uploads required",
+			"No data transfers",
+			"Complete privacy - videos never leave your device"
 		]
 	}
 	</script>`}
@@ -185,9 +187,12 @@
 
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
-		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-4 sm:mb-8">
+		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
 			{title}
 		</h1>
+		<p class="text-center text-cyan-300 text-sm sm:text-base md:text-lg font-medium mb-4 sm:mb-8 tracking-wide">
+			Trim & Compress videos for free • No Uploads • No Transfers • 100% Private
+		</p>
 
 		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
 			<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange}>
@@ -210,7 +215,7 @@
 									<li>Trim videos to specific time ranges</li>
 									<li>Compress videos to reduce file size</li>
 									<li>Real-time preview of trim selection</li>
-									<li>No server uploads - 100% client-side processing</li>
+									<li>No uploads required - 100% client-side processing</li>
 								</ul>
 							</div>
 						</div>
@@ -238,6 +243,17 @@
 						{#if limitationsExpanded}
 							<div id="faq-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
 								<div class="space-y-4 text-sm sm:text-base">
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">How can you edit videos without uploading them?</h3>
+										<p class="text-gray-400">
+											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
+											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
+											All video processing (trimming, compression, encoding) happens locally on your device using your computer's CPU and memory. 
+											The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
+											No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
+										</p>
+									</div>
+
 									<div class="text-gray-300">
 										<h3 class="font-semibold text-gray-200 mb-1">What video formats are supported?</h3>
 										<p class="text-gray-400">
