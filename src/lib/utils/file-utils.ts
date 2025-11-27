@@ -33,12 +33,33 @@ export function estimateOutputFileSize(
 	originalDuration: number,
 	trimmedDuration: number,
 	compressionEnabled: boolean,
-	crf: number = 23
+	crf: number = 23,
+	originalWidth?: number,
+	originalHeight?: number,
+	cropWidth?: number,
+	cropHeight?: number
 ): number {
 	if (originalDuration === 0) return 0;
 
 	// Base estimate: proportional to duration
 	let estimatedSize = (originalSizeBytes * trimmedDuration) / originalDuration;
+
+	// Account for cropping (reduced pixel count = smaller file)
+	if (
+		originalWidth &&
+		originalHeight &&
+		cropWidth &&
+		cropHeight &&
+		cropWidth > 0 &&
+		cropHeight > 0 &&
+		originalWidth > 0 &&
+		originalHeight > 0
+	) {
+		const originalArea = originalWidth * originalHeight;
+		const croppedArea = cropWidth * cropHeight;
+		const areaRatio = croppedArea / originalArea;
+		estimatedSize = estimatedSize * areaRatio;
+	}
 
 	if (compressionEnabled) {
 		// CRF compression ratio estimation

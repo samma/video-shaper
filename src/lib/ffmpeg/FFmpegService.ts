@@ -1,6 +1,6 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL, fetchFile } from '@ffmpeg/util';
-import type { FFmpegProgress, TrimOptions, FFmpegLoadStatus } from './types';
+import type { FFmpegProgress, TrimOptions, FFmpegLoadStatus, CropOptions } from './types';
 
 export class FFmpegService {
 	private ffmpeg: FFmpeg;
@@ -115,6 +115,25 @@ export class FFmpegService {
 				options.duration.toString()
 			];
 
+			// Add crop filter if crop options are provided
+			let videoFilters: string[] = [];
+			if (options.crop) {
+				const crop = options.crop;
+				// Validate crop coordinates (ensure they're within reasonable bounds)
+				const cropX = Math.max(0, Math.floor(crop.x));
+				const cropY = Math.max(0, Math.floor(crop.y));
+				const cropWidth = Math.max(1, Math.floor(crop.width));
+				const cropHeight = Math.max(1, Math.floor(crop.height));
+				
+				// FFmpeg crop filter: crop=width:height:x:y
+				videoFilters.push(`crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`);
+			}
+
+			// Apply video filters if any
+			if (videoFilters.length > 0) {
+				command.push('-vf', videoFilters.join(','));
+			}
+
 			if (options.compressionEnabled && options.crf !== undefined) {
 				// Validate CRF value
 				const crfValue = Math.max(18, Math.min(28, options.crf));
@@ -173,6 +192,9 @@ export class FFmpegService {
 			console.log('[FFmpeg] [DEBUG] Compression enabled:', options.compressionEnabled);
 			if (options.compressionEnabled) {
 				console.log('[FFmpeg] [DEBUG] CRF value:', options.crf);
+			}
+			if (options.crop) {
+				console.log('[FFmpeg] [DEBUG] Crop:', `x=${options.crop.x}, y=${options.crop.y}, w=${options.crop.width}, h=${options.crop.height}`);
 			}
 			
 			// Log memory info if available

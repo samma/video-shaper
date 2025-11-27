@@ -3,6 +3,7 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import VideoPreview from '$lib/components/VideoPreview.svelte';
 	import TrimControls from '$lib/components/TrimControls.svelte';
+	import CropControls from '$lib/components/CropControls.svelte';
 	import CompressionControls from '$lib/components/CompressionControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
@@ -23,6 +24,16 @@
 	// Compression state
 	let compressionEnabled: boolean = false;
 	let crf: number = 23;
+
+	// Crop state
+	let cropEnabled: boolean = false;
+	let cropX: number = 0;
+	let cropY: number = 0;
+	let cropWidth: number = 0;
+	let cropHeight: number = 0;
+	let aspectRatioLocked: boolean = false;
+	let videoWidth: number = 0;
+	let videoHeight: number = 0;
 
 	// Processing state
 	let processing: boolean = false;
@@ -49,7 +60,11 @@
 			videoDuration,
 			endTime - startTime,
 			compressionEnabled,
-			crf
+			crf,
+			videoWidth,
+			videoHeight,
+			cropEnabled && cropWidth > 0 ? cropWidth : undefined,
+			cropEnabled && cropHeight > 0 ? cropHeight : undefined
 		)
 		: 0;
 
@@ -83,12 +98,114 @@
 		// Reset compression
 		compressionEnabled = false;
 		crf = 23;
+		// Reset crop
+		cropEnabled = false;
+		cropX = 0;
+		cropY = 0;
+		cropWidth = 0;
+		cropHeight = 0;
+		aspectRatioLocked = false;
+		videoWidth = 0;
+		videoHeight = 0;
 	}
 
 	function handleDurationLoad(duration: number) {
 		videoDuration = duration;
 		endTime = duration;
 		// Warning will automatically hide when videoDuration > 0
+	}
+
+	function handleVideoMetadataLoad(width: number, height: number) {
+		videoWidth = width;
+		videoHeight = height;
+		// Initialize crop to full video size if enabled
+		if (cropEnabled && cropWidth === 0 && cropHeight === 0) {
+			cropX = 0;
+			cropY = 0;
+			cropWidth = width;
+			cropHeight = height;
+		}
+	}
+
+	function handleCropChange(x: number, y: number, width: number, height: number) {
+		cropX = x;
+		cropY = y;
+		cropWidth = width;
+		cropHeight = height;
+	}
+
+	function handleCropToggle(enabled: boolean) {
+		cropEnabled = enabled;
+		if (enabled && videoWidth > 0 && videoHeight > 0 && cropWidth === 0) {
+			// Initialize to full video size
+			cropX = 0;
+			cropY = 0;
+			cropWidth = videoWidth;
+			cropHeight = videoHeight;
+		} else if (!enabled) {
+			// Reset crop
+			cropX = 0;
+			cropY = 0;
+			cropWidth = 0;
+			cropHeight = 0;
+		}
+	}
+
+	function handleAspectRatioLockToggle(locked: boolean) {
+		aspectRatioLocked = locked;
+	}
+
+	function handlePresetSelect(aspectRatio: number | null) {
+		if (!cropEnabled || videoWidth === 0 || videoHeight === 0) return;
+		
+		if (aspectRatio === null) {
+			// Custom - unlock aspect ratio
+			aspectRatioLocked = false;
+			return;
+		}
+		
+		// Apply preset aspect ratio
+		aspectRatioLocked = true;
+		
+		// Calculate new crop dimensions maintaining center point
+		const currentCenterX = cropX + cropWidth / 2;
+		const currentCenterY = cropY + cropHeight / 2;
+		
+		let newWidth: number;
+		let newHeight: number;
+		
+		if (aspectRatio > videoWidth / videoHeight) {
+			// Preset is wider than video - fit to height
+			newHeight = Math.min(videoHeight, cropHeight);
+			newWidth = newHeight * aspectRatio;
+		} else {
+			// Preset is taller than video - fit to width
+			newWidth = Math.min(videoWidth, cropWidth);
+			newHeight = newWidth / aspectRatio;
+		}
+		
+		// Constrain to video bounds
+		if (newWidth > videoWidth) {
+			newWidth = videoWidth;
+			newHeight = newWidth / aspectRatio;
+		}
+		if (newHeight > videoHeight) {
+			newHeight = videoHeight;
+			newWidth = newHeight * aspectRatio;
+		}
+		
+		// Center the crop area
+		let newX = currentCenterX - newWidth / 2;
+		let newY = currentCenterY - newHeight / 2;
+		
+		// Constrain to video bounds
+		newX = Math.max(0, Math.min(videoWidth - newWidth, newX));
+		newY = Math.max(0, Math.min(videoHeight - newHeight, newY));
+		
+		cropX = newX;
+		cropY = newY;
+		cropWidth = newWidth;
+		cropHeight = newHeight;
 	}
 
 	async function handleProcess() {
@@ -124,13 +241,28 @@
 				processingProgress = progress.ratio;
 			});
 
-			// Trim the video
-			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, {
+			// Build trim options with optional crop
+			const trimOptions: any = {
 				startTime,
 				duration: endTime - startTime,
 				compressionEnabled,
 				crf
-			});
+			};
+
+			// Add crop options if enabled
+			if (cropEnabled && cropWidth > 0 && cropHeight > 0) {
+				trimOptions.crop = {
+					x: cropX,
+					y: cropY,
+					width: cropWidth,
+					height: cropHeight,
+					aspectRatioLocked,
+					aspectRatio: cropWidth / cropHeight
+				};
+			}
+
+			// Trim the video
+			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, trimOptions);
 
 			// Download the result
 			const downloadUrl = URL.createObjectURL(trimmedBlob);
@@ -399,6 +531,16 @@
 							bind:this={videoPreviewComponent}
 							videoFile={selectedFile}
 							onDurationLoad={handleDurationLoad}
+							onVideoMetadataLoad={handleVideoMetadataLoad}
+							{cropEnabled}
+							{cropX}
+							{cropY}
+							{cropWidth}
+							{cropHeight}
+							{aspectRatioLocked}
+							videoWidth={videoWidth}
+							videoHeight={videoHeight}
+							onCropChange={handleCropChange}
 						/>
 
 						<TrimControls
@@ -409,6 +551,17 @@
 							onStartChange={(time) => (startTime = time)}
 							onEndChange={(time) => (endTime = time)}
 							onSeek={seekVideo}
+						/>
+
+						<CropControls
+							bind:cropEnabled
+							bind:aspectRatioLocked
+							disabled={processing}
+							cropWidth={cropWidth}
+							cropHeight={cropHeight}
+							onCropToggle={handleCropToggle}
+							onAspectRatioLockToggle={handleAspectRatioLockToggle}
+							onPresetSelect={handlePresetSelect}
 						/>
 
 						<CompressionControls
