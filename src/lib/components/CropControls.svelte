@@ -44,29 +44,30 @@
 	$: currentAspectRatio = cropWidth > 0 && cropHeight > 0 ? (cropWidth / cropHeight).toFixed(2) : '0.00';
 </script>
 
-<div class="crop-controls space-y-4 {disabled ? 'opacity-60' : ''}">
-	<div class="flex items-center justify-between mb-2">
-		<h3 class="text-lg font-semibold text-gray-200">Crop Video</h3>
-		<button
-			on:click={handleToggle}
-			disabled={disabled}
-			class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-				{cropEnabled ? 'bg-teal-600' : 'bg-gray-600'}
-				{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
-			role="switch"
-			aria-checked={cropEnabled}
-			aria-label="Toggle crop"
-			aria-disabled={disabled}
-		>
-			<span
-				class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-					{cropEnabled ? 'translate-x-6' : 'translate-x-1'}"
-			></span>
-		</button>
-	</div>
+<div class="crop-controls bg-gray-700/50 rounded-lg p-4 sm:p-5 border border-gray-600/50 {disabled ? 'opacity-60' : ''}">
+	<div class="space-y-4">
+		<div class="flex items-center justify-between mb-2">
+			<h3 class="text-lg font-semibold text-gray-200">Crop Video</h3>
+			<button
+				on:click={handleToggle}
+				disabled={disabled}
+				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+					{cropEnabled ? 'bg-teal-600' : 'bg-gray-600'}
+					{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+				role="switch"
+				aria-checked={cropEnabled}
+				aria-label="Toggle crop"
+				aria-disabled={disabled}
+			>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+						{cropEnabled ? 'translate-x-6' : 'translate-x-1'}"
+				></span>
+			</button>
+		</div>
 
-	{#if cropEnabled}
-		<div class="space-y-3">
+		{#if cropEnabled}
+			<div class="space-y-3">
 			<div class="flex items-center justify-between text-sm">
 				<span class="text-gray-300">
 					Dimensions: {cropWidth > 0 ? Math.round(cropWidth) : '0'} × {cropHeight > 0 ? Math.round(cropHeight) : '0'}px
@@ -124,12 +125,13 @@
 				</div>
 			</div>
 
-			<p class="text-xs text-gray-400 mt-2">
-				Drag the handles on the video preview to adjust the crop area
-			</p>
-		</div>
-	{:else}
-		<p class="text-sm text-gray-400">Enable crop to adjust video dimensions</p>
-	{/if}
+				<p class="text-xs text-gray-400 mt-2">
+					Click and drag the crop rectangle on the video preview to adjust the crop area
+				</p>
+			</div>
+		{:else}
+			<p class="text-sm text-gray-400">Enable crop to adjust video dimensions</p>
+		{/if}
+	</div>
 </div>
 

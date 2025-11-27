@@ -6,6 +6,7 @@
 
 	let isDragging = false;
 	let fileInput: HTMLInputElement;
+	let errorMessage: string = '';
 
 	function handleDragOver(event: DragEvent) {
 		event.preventDefault();
@@ -28,9 +29,11 @@
 		if (files && files.length > 0) {
 			const file = files[0];
 			if (file.type.startsWith('video/')) {
+				errorMessage = '';
 				onFileSelect(file);
 			} else {
-				alert('Please select a video file');
+				errorMessage = 'Please select a video file';
+				setTimeout(() => (errorMessage = ''), 5000);
 			}
 		}
 	}
@@ -39,7 +42,14 @@
 		const target = event.target as HTMLInputElement;
 		const files = target.files;
 		if (files && files.length > 0) {
-			onFileSelect(files[0]);
+			const file = files[0];
+			if (file.type.startsWith('video/')) {
+				errorMessage = '';
+				onFileSelect(file);
+			} else {
+				errorMessage = 'Please select a video file';
+				setTimeout(() => (errorMessage = ''), 5000);
+			}
 		}
 	}
 
@@ -92,6 +102,9 @@
 			{isDragging ? 'Drop video here' : 'Click to select or drag and drop'}
 		</p>
 		<p class="text-xs sm:text-sm text-gray-400">Supports: MP4, WebM, MOV, AVI, and more</p>
+		{#if errorMessage}
+			<p class="text-xs sm:text-sm text-red-400 mt-2 font-medium">{errorMessage}</p>
+		{/if}
 	</div>
 </div>
 

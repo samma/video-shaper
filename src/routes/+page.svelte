@@ -340,7 +340,7 @@
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
 			{title}
 		</h1>
-		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-medium mb-4 sm:mb-8 tracking-wide">
+		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
 			Trim, Crop and Compress videos for free • No Uploads • No Transfers • 100% Private
 		</p>
 
@@ -356,8 +356,7 @@
 						<div class="space-y-3 text-sm sm:text-base text-gray-300">
 							<p>
 								<strong class="text-teal-400">Video Shaper</strong> is a completely <strong class="text-teal-400">free</strong> video editor that runs entirely in your browser. 
-								You can <strong class="text-teal-400">trim</strong>, <strong class="text-teal-400">crop</strong>, and <strong class="text-teal-400">compress</strong> videos. 
-								All processing happens on your device - videos never leave your computer.
+								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, and <strong class="text-teal-400">compress</strong> videos with complete privacy—all processing happens on your device, and videos never leave your computer.
 							</p>
 							
 							<div>
@@ -396,7 +395,7 @@
 							<div id="faq-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
 								<div class="space-y-4 text-sm sm:text-base">
 									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">How can you edit videos without uploading them?</h3>
+										<h3 class="font-semibold text-gray-200 mb-1">How does video editing work without uploading?</h3>
 										<p class="text-gray-400">
 											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
 											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
@@ -660,15 +659,16 @@
 							class="w-full py-2 sm:py-2.5 px-4 text-sm sm:text-base border border-gray-600 rounded-lg text-gray-200 hover:bg-gray-700 active:bg-gray-600 transition-colors"
 							disabled={processing}
 						>
-							Select Different Video
+							Choose Another Video
 						</button>
 					</div>
 				{/if}
 			</FFmpegLoader>
 
 			{#if ffmpegError}
-				<div class="mt-4 text-center text-red-400 text-sm">
-					Error: {ffmpegError}
+				<div class="mt-4 bg-red-900/50 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
+					<p class="text-red-200 font-semibold text-sm sm:text-base mb-1">Failed to Load Video Processor</p>
+					<p class="text-red-300 text-xs sm:text-sm">{ffmpegError}</p>
 				</div>
 			{/if}
 		</div>

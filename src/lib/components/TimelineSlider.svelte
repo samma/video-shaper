@@ -195,7 +195,7 @@
 		<!-- Start handle -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
-			class="absolute top-1/2 h-7 w-7 sm:h-8 sm:w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingStart ? '' : 'transition-all'}"
+			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingStart ? '' : 'transition-all'}"
 			style="left: {startPercent}%"
 			on:mousedown={(e) => {
 				e.stopPropagation();
@@ -215,7 +215,7 @@
 		<!-- End handle -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
-			class="absolute top-1/2 h-7 w-7 sm:h-8 sm:w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingEnd ? '' : 'transition-all'}"
+			class="absolute top-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg z-10 transition-transform {disabled ? 'cursor-not-allowed' : 'cursor-grab hover:scale-110 active:cursor-grabbing active:scale-125'} {isDraggingEnd ? '' : 'transition-all'}"
 			style="left: {endPercent}%"
 			on:mousedown={(e) => {
 				e.stopPropagation();

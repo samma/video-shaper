@@ -12,8 +12,16 @@
 
 	function handleToggle() {
 		if (disabled) return;
+		const wasEnabled = compressionEnabled;
 		compressionEnabled = !compressionEnabled;
 		onCompressionToggle(compressionEnabled);
+		
+		// When enabling compression, reset slider to middle (CRF 23)
+		if (!wasEnabled && compressionEnabled) {
+			const middleCrf = 23; // Balanced quality/size
+			crf = middleCrf;
+			onCrfChange(middleCrf);
+		}
 	}
 
 	function handleSliderChange(event: Event) {
@@ -38,29 +46,30 @@
 	}
 </script>
 
-<div class="compression-controls space-y-4 {disabled ? 'opacity-60' : ''}">
-	<div class="flex items-center justify-between mb-2">
-		<h3 class="text-lg font-semibold text-gray-200">Compression</h3>
-		<button
-			on:click={handleToggle}
-			disabled={disabled}
-			class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-				{compressionEnabled ? 'bg-teal-600' : 'bg-gray-600'}
-				{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
-			role="switch"
-			aria-checked={compressionEnabled}
-			aria-label="Toggle compression"
-			aria-disabled={disabled}
-		>
-			<span
-				class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-					{compressionEnabled ? 'translate-x-6' : 'translate-x-1'}"
-			></span>
-		</button>
-	</div>
+<div class="compression-controls bg-gray-700/50 rounded-lg p-4 sm:p-5 border border-gray-600/50 {disabled ? 'opacity-60' : ''}">
+	<div class="space-y-4">
+		<div class="flex items-center justify-between mb-2">
+			<h3 class="text-lg font-semibold text-gray-200">Compression</h3>
+			<button
+				on:click={handleToggle}
+				disabled={disabled}
+				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+					{compressionEnabled ? 'bg-teal-600' : 'bg-gray-600'}
+					{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+				role="switch"
+				aria-checked={compressionEnabled}
+				aria-label="Toggle compression"
+				aria-disabled={disabled}
+			>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+						{compressionEnabled ? 'translate-x-6' : 'translate-x-1'}"
+				></span>
+			</button>
+		</div>
 
-	{#if compressionEnabled}
-		<div class="space-y-3">
+		{#if compressionEnabled}
+			<div class="space-y-3">
 			<div class="flex items-center justify-center text-sm">
 				<span class="text-gray-300">Quality: {getQualityLabel(crf)}</span>
 			</div>
@@ -81,20 +90,21 @@
 					/>
 					<!-- Visual handle indicator overlay -->
 					<div class="absolute top-1/2 pointer-events-none slider-handle-indicator" style="left: calc({(sliderValue - MIN_CRF) / (MAX_CRF - MIN_CRF) * 100}% - 16px);">
-						<div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-3 border-teal-400 bg-gray-800 shadow-lg flex items-center justify-center">
-							<div class="h-3 w-1 bg-teal-400 rounded"></div>
+						<div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-teal-600 bg-gray-800 shadow-lg flex items-center justify-center">
+							<div class="h-2.5 w-0.5 bg-teal-600 rounded"></div>
 						</div>
 					</div>
 				</div>
 				<div class="flex justify-between text-xs text-gray-500 mt-1">
-					<span>Small File</span>
-					<span>High Quality</span>
+					<span>Smaller File</span>
+					<span>Better Quality</span>
 				</div>
 			</div>
 		</div>
-	{:else}
-		<p class="text-sm text-gray-400">Enable compression to reduce file size</p>
-	{/if}
+		{:else}
+			<p class="text-sm text-gray-400">Enable compression to reduce file size</p>
+		{/if}
+	</div>
 </div>
 
 <style>
