@@ -289,6 +289,16 @@
 									</div>
 
 									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">What is tracked?</h3>
+										<p class="text-gray-400">
+											This site uses <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GoatCounter</a>, 
+											a privacy-friendly analytics service, to simply count how many people visit the page. GoatCounter does not track personal data, 
+											does not use cookies for tracking, and does not create unique user identifiers. It only collects basic page view statistics 
+											(such as page paths, referrers, and browser information) to help understand site usage. No video data or personal information is tracked.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
 										<h3 class="font-semibold text-gray-200 mb-1">Why does compression sometimes fail?</h3>
 										<p class="text-gray-400">
 											Compression requires significant browser memory. Very large videos or high-resolution files (like 4K) can exceed browser memory limits. 
@@ -368,6 +378,11 @@
 											<li>
 												<strong class="text-gray-300">Vitest</strong> - Licensed under 
 												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+											</li>
+											<li>
+												<strong class="text-gray-300">GoatCounter</strong> - Privacy-friendly web analytics. 
+												See <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GoatCounter.com</a> 
+												and <a href="https://github.com/arp242/goatcounter" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GitHub repository</a> for license information.
 											</li>
 										</ul>
 										<p class="mt-4 text-gray-500 italic">
