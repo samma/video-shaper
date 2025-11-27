@@ -9,7 +9,7 @@
 	<div class="text-center">
 		<h1 class="text-4xl font-bold text-white mb-4">{status}</h1>
 		<p class="text-gray-300 mb-8">{message}</p>
-		<a href="/" class="text-cyan-400 hover:text-cyan-300 underline">Go home</a>
+		<a href="/" class="text-teal-400 hover:text-teal-300 underline">Go home</a>
 	</div>
 </div>
 

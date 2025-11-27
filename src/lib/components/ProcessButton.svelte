@@ -20,7 +20,7 @@
 		</button>
 		<button
 			disabled
-			class="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white bg-cyan-500 cursor-wait transition-all"
+			class="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white bg-teal-500 cursor-wait transition-all"
 		>
 			<span class="flex items-center justify-center gap-2">
 				<svg class="animate-spin h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">

@@ -75,14 +75,14 @@
 						value={sliderValue}
 						on:input={handleSliderChange}
 						disabled={disabled}
-						class="w-full h-2 bg-gray-700 rounded-lg appearance-none slider-cyan {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+						class="w-full h-2 bg-gray-700 rounded-lg appearance-none slider-teal {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 						aria-label="Compression quality"
 						aria-disabled={disabled}
 					/>
 					<!-- Visual handle indicator overlay -->
 					<div class="absolute top-1/2 pointer-events-none slider-handle-indicator" style="left: calc({(sliderValue - MIN_CRF) / (MAX_CRF - MIN_CRF) * 100}% - 16px);">
-						<div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-3 border-cyan-400 bg-gray-800 shadow-lg flex items-center justify-center">
-							<div class="h-3 w-1 bg-cyan-400 rounded"></div>
+						<div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-3 border-teal-400 bg-gray-800 shadow-lg flex items-center justify-center">
+							<div class="h-3 w-1 bg-teal-400 rounded"></div>
 						</div>
 					</div>
 				</div>
@@ -98,7 +98,7 @@
 </div>
 
 <style>
-	.slider-cyan::-webkit-slider-thumb {
+	.slider-teal::-webkit-slider-thumb {
 		appearance: none;
 		width: 32px;
 		height: 32px;
@@ -111,13 +111,13 @@
 	}
 
 	@media (min-width: 640px) {
-		.slider-cyan::-webkit-slider-thumb {
+		.slider-teal::-webkit-slider-thumb {
 			width: 40px;
 			height: 40px;
 		}
 	}
 
-	.slider-cyan::-moz-range-thumb {
+	.slider-teal::-moz-range-thumb {
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
@@ -129,13 +129,13 @@
 	}
 
 	@media (min-width: 640px) {
-		.slider-cyan::-moz-range-thumb {
+		.slider-teal::-moz-range-thumb {
 			width: 40px;
 			height: 40px;
 		}
 	}
 
-	.slider-cyan::-moz-range-track {
+	.slider-teal::-moz-range-track {
 		background: #374151; /* gray-700 */
 	}
 

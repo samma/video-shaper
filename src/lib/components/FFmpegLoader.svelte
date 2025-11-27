@@ -68,7 +68,7 @@
 		</div>
 	{:else if loadStatus === 'loading'}
 		<div class="text-center p-4 sm:p-6 mb-4 bg-gray-700 rounded-lg border border-gray-600">
-			<div class="inline-block animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-cyan-400 mb-3"></div>
+			<div class="inline-block animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-teal-400 mb-3"></div>
 			<div class="text-gray-200 font-medium text-sm sm:text-base">Loading video processor...</div>
 			<div class="text-gray-400 text-xs sm:text-sm mt-1">
 				{#if sessionStorage.getItem('ffmpeg-loaded') === 'true'}

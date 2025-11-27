@@ -86,7 +86,7 @@
 					on:click={handleAspectRatioLockToggle}
 					disabled={disabled}
 					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors
-						{aspectRatioLocked ? 'bg-cyan-600' : 'bg-gray-600'}
+						{aspectRatioLocked ? 'bg-teal-600' : 'bg-gray-600'}
 						{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 					role="switch"
 					aria-checked={aspectRatioLocked}
@@ -108,7 +108,7 @@
 							on:click={() => handlePresetSelect(preset)}
 							disabled={disabled}
 							class="px-3 py-1.5 text-xs sm:text-sm rounded-lg border transition-colors
-								{disabled ? 'border-gray-600 text-gray-500 cursor-not-allowed' : 'border-gray-600 text-gray-300 hover:border-cyan-500 hover:text-cyan-400 active:bg-gray-700'}"
+								{disabled ? 'border-gray-600 text-gray-500 cursor-not-allowed' : 'border-gray-600 text-gray-300 hover:border-teal-500 hover:text-teal-400 active:bg-gray-700'}"
 						>
 							{preset.label}
 						</button>
@@ -117,7 +117,7 @@
 						on:click={handleCustomPreset}
 						disabled={disabled}
 						class="px-3 py-1.5 text-xs sm:text-sm rounded-lg border transition-colors
-							{disabled ? 'border-gray-600 text-gray-500 cursor-not-allowed' : 'border-gray-600 text-gray-300 hover:border-cyan-500 hover:text-cyan-400 active:bg-gray-700'}"
+							{disabled ? 'border-gray-600 text-gray-500 cursor-not-allowed' : 'border-gray-600 text-gray-300 hover:border-teal-500 hover:text-teal-400 active:bg-gray-700'}"
 					>
 						Custom
 					</button>

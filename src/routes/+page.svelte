@@ -340,7 +340,7 @@
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
 			{title}
 		</h1>
-		<p class="text-center text-cyan-300 text-sm sm:text-base md:text-lg font-medium mb-4 sm:mb-8 tracking-wide">
+		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-medium mb-4 sm:mb-8 tracking-wide">
 			Trim, Crop and Compress videos for free • No Uploads • No Transfers • 100% Private
 		</p>
 
@@ -355,8 +355,8 @@
 					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
 						<div class="space-y-3 text-sm sm:text-base text-gray-300">
 							<p>
-								<strong class="text-cyan-400">Video Shaper</strong> is a completely <strong class="text-cyan-400">free</strong> video editor that runs entirely in your browser. 
-								You can <strong class="text-cyan-400">trim</strong>, <strong class="text-cyan-400">crop</strong>, and <strong class="text-cyan-400">compress</strong> videos. 
+								<strong class="text-teal-400">Video Shaper</strong> is a completely <strong class="text-teal-400">free</strong> video editor that runs entirely in your browser. 
+								You can <strong class="text-teal-400">trim</strong>, <strong class="text-teal-400">crop</strong>, and <strong class="text-teal-400">compress</strong> videos. 
 								All processing happens on your device - videos never leave your computer.
 							</p>
 							
@@ -400,7 +400,7 @@
 										<p class="text-gray-400">
 											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
 											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
-											All video processing (<strong class="text-cyan-400">trimming</strong>, <strong class="text-cyan-400">cropping</strong>, <strong class="text-cyan-400">compression</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
+											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
 											The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
 											No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
 										</p>
@@ -443,7 +443,7 @@
 									<div class="text-gray-300">
 										<h3 class="font-semibold text-gray-200 mb-1">What is tracked?</h3>
 										<p class="text-gray-400">
-											This site uses <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GoatCounter</a>, 
+											This site uses <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter</a>, 
 											a privacy-friendly analytics service, to simply count how many people visit the page. GoatCounter does not track personal data, 
 											does not use cookies for tracking, and does not create unique user identifiers. It only collects basic page view statistics 
 											(such as page paths, referrers, and browser information) to help understand site usage. No video data or personal information is tracked.
@@ -502,39 +502,39 @@
 										<ul class="space-y-2 ml-4 list-disc">
 											<li>
 												<strong class="text-gray-300">FFmpeg</strong> - Licensed under 
-												<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GPL v3</a> 
-												and <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">LGPL v3</a>. 
-												FFmpeg is used via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">ffmpeg.wasm</a> 
+												<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GPL v3</a> 
+												and <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">LGPL v3</a>. 
+												FFmpeg is used via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">ffmpeg.wasm</a> 
 												(MIT License).
 											</li>
 											<li>
 												<strong class="text-gray-300">Svelte & SvelteKit</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
 											</li>
 											<li>
 												<strong class="text-gray-300">TailwindCSS</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
 											</li>
 											<li>
 												<strong class="text-gray-300">Vite</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
 											</li>
 											<li>
 												<strong class="text-gray-300">TypeScript</strong> - Licensed under 
-												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">Apache License 2.0</a>.
+												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">Apache License 2.0</a>.
 											</li>
 											<li>
 												<strong class="text-gray-300">Playwright</strong> - Licensed under 
-												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">Apache License 2.0</a>.
+												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">Apache License 2.0</a>.
 											</li>
 											<li>
 												<strong class="text-gray-300">Vitest</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">MIT License</a>.
+												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
 											</li>
 											<li>
 												<strong class="text-gray-300">GoatCounter</strong> - Privacy-friendly web analytics. 
-												See <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GoatCounter.com</a> 
-												and <a href="https://github.com/arp242/goatcounter" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline">GitHub repository</a> for license information.
+												See <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter.com</a> 
+												and <a href="https://github.com/arp242/goatcounter" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub repository</a> for license information.
 											</li>
 										</ul>
 										<p class="mt-4 text-gray-500 italic">
@@ -599,7 +599,7 @@
 							<div class="bg-gray-700 rounded-lg p-3 sm:p-4">
 								<div class="flex items-center justify-between">
 									<span class="text-gray-300 text-sm sm:text-base">Estimated Output Size:</span>
-									<span class="text-cyan-400 font-semibold text-base sm:text-lg">
+									<span class="text-teal-400 font-semibold text-base sm:text-lg">
 										~{formatFileSizeMB(estimatedSize)}
 									</span>
 								</div>

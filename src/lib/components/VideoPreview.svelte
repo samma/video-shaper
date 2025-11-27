@@ -547,8 +547,8 @@
 				>
 					<!-- Border div - inner edge aligns with crop area -->
 					<div
-						class="border-cyan-400 w-full h-full"
-						style="border-width: {BORDER_THICKNESS}px; border-style: solid; box-shadow: 0 0 0 {BORDER_THICKNESS}px rgba(0, 0, 0, 0.3), 0 0 0 {BORDER_THICKNESS + 2}px rgba(6, 182, 212, 0.2); border-radius: 4px; box-sizing: border-box;"
+						class="border-teal-400 w-full h-full"
+						style="border-width: {BORDER_THICKNESS}px; border-style: solid; box-shadow: 0 0 0 {BORDER_THICKNESS}px rgba(0, 0, 0, 0.3), 0 0 0 {BORDER_THICKNESS + 2}px rgba(20, 184, 166, 0.2); border-radius: 4px; box-sizing: border-box;"
 					></div>
 				</div>
 			{/if}

@@ -53,7 +53,7 @@
 <div
 	class="file-upload border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition-colors
 		{isDragging
-		? 'border-cyan-500 bg-cyan-900/30'
+		? 'border-teal-500 bg-teal-900/30'
 		: 'border-gray-600 hover:border-gray-500 bg-gray-700'}
 		{disabled ? 'opacity-50 cursor-not-allowed' : ''}"
 	on:dragover={handleDragOver}
