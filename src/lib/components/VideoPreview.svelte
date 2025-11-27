@@ -16,13 +16,6 @@
 	export let cropWidth: number = 0;
 	export let cropHeight: number = 0;
 	export let aspectRatioLocked: boolean = false;
-	// These props are passed from parent but not used internally
-	// Dimensions are read directly from video element via getVideoDisplayInfo()
-	// Kept for API consistency with parent component
-	// svelte-ignore a11y-unknown-attribute
-	export let videoWidth: number = 0;
-	// svelte-ignore a11y-unknown-attribute
-	export let videoHeight: number = 0;
 	// eslint-disable-next-line no-unused-vars
 	export let onCropChange: (x: number, y: number, width: number, height: number) => void = () => {};
 	// eslint-disable-next-line no-unused-vars

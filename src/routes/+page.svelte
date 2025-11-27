@@ -538,8 +538,6 @@
 							{cropWidth}
 							{cropHeight}
 							{aspectRatioLocked}
-							videoWidth={videoWidth}
-							videoHeight={videoHeight}
 							onCropChange={handleCropChange}
 						/>
 
