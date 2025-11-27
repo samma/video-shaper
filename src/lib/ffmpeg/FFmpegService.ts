@@ -452,12 +452,27 @@ export class FFmpegService {
 
 	/**
 	 * Cancel the current video processing operation
-	 * Note: We don't call terminate() as it permanently destroys the FFmpeg instance.
-	 * Instead, we rely on the cancellation flag which is checked at key points.
+	 * Uses terminate() to immediately stop FFmpeg processing, then reinitializes
+	 * the FFmpeg instance so it can be used again.
 	 */
-	cancel(): void {
+	async cancel(): Promise<void> {
 		this.isCancelled = true;
-		console.log('[FFmpeg] Cancel requested - operation will stop at next checkpoint');
+		console.log('[FFmpeg] Cancel requested - terminating FFmpeg process...');
+		
+		try {
+			// Terminate the FFmpeg process immediately
+			await this.ffmpeg.terminate();
+			console.log('[FFmpeg] FFmpeg process terminated');
+			
+			// Reinitialize FFmpeg so it can be used again
+			this.loadStatus = 'unloaded';
+			await this.initialize();
+			console.log('[FFmpeg] FFmpeg reinitialized and ready for next operation');
+		} catch (error) {
+			console.error('[FFmpeg] Error during cancel:', error);
+			// Even if reinitialize fails, mark as unloaded so next operation will retry
+			this.loadStatus = 'unloaded';
+		}
 	}
 
 	/**

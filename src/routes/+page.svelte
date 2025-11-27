@@ -48,9 +48,9 @@
 	let limitationsExpanded: boolean = false;
 	let disclaimerExpanded: boolean = false;
 
-	function handleCancel() {
+	async function handleCancel() {
 		if (ffmpegService) {
-			ffmpegService.cancel();
+			await ffmpegService.cancel();
 		}
 		processing = false;
 		processingProgress = 0;
