@@ -58,11 +58,6 @@
 		processingWarning = '';
 	}
 
-	function handleProceedWithWarning() {
-		processingWarning = '';
-		handleProcess();
-	}
-
 	function handleDismissWarning() {
 		processingWarning = '';
 	}
@@ -242,12 +237,11 @@
 					`Large file detected (${formatFileSizeMB(selectedFile.size)} original, ` +
 					`~${formatFileSizeMB(estimatedProcessedSizeMB * 1024 * 1024)} ${durationLabel}). ` +
 					`Compression may fail or take a very long time due to browser memory limits.`;
-				return; // Don't proceed, show warning instead
+				// Continue processing - warning is informational only
 			}
 		}
 
-		// Clear any previous warnings/errors and proceed
-		processingWarning = '';
+		// Clear any previous errors and proceed
 		processingError = '';
 		processing = true;
 		processingProgress = 0;
@@ -619,22 +613,15 @@
 									</svg>
 									<div class="flex-1">
 										<p class="text-yellow-200 font-semibold text-sm sm:text-base mb-1">Warning</p>
-										<p class="text-yellow-300 text-xs sm:text-sm mb-3">{processingWarning}</p>
-										<div class="flex gap-2">
-											<button
-												on:click={handleProceedWithWarning}
-												class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-semibold rounded transition-colors"
-											>
-												Continue Anyway
-											</button>
-											<button
-												on:click={handleDismissWarning}
-												class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-semibold rounded transition-colors"
-											>
-												Cancel
-											</button>
-										</div>
+										<p class="text-yellow-300 text-xs sm:text-sm">{processingWarning}</p>
 									</div>
+									<button
+										on:click={handleDismissWarning}
+										class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0"
+										aria-label="Hide warning"
+									>
+										Hide
+									</button>
 								</div>
 							</div>
 						{/if}
@@ -644,7 +631,7 @@
 							onCancel={handleCancel}
 							{processing}
 							progress={processingProgress}
-							disabled={!ffmpegService || videoDuration === 0 || !!processingWarning}
+							disabled={!ffmpegService || videoDuration === 0}
 						/>
 
 						{#if processingError}
