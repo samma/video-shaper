@@ -540,6 +540,9 @@
 
 									<div class="border-t border-gray-600 pt-4">
 										<p class="text-gray-400">
+											Page available on <a href="https://vs.samma.no" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">vs.samma.no</a> and <a href="https://video.shaper.samma.no" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">video.shaper.samma.no</a>.
+										</p>
+										<p class="text-gray-400 mt-2">
 											Source code available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
 										</p>
 									</div>
