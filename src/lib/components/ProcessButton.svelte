@@ -51,7 +51,7 @@
 				? 'bg-gray-600 cursor-not-allowed text-gray-400'
 				: 'bg-teal-600 hover:bg-teal-500 active:bg-teal-700'}"
 		>
-			Trim Video
+			Process Video
 		</button>
 	{/if}
 </div>
