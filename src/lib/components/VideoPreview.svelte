@@ -86,6 +86,10 @@
 			window.removeEventListener('keydown', handleKeyPress);
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.removeEventListener('mouseup', handleMouseUp);
+			// Clean up touch listeners if they exist
+			document.removeEventListener('touchmove', handleTouchMove);
+			document.removeEventListener('touchend', handleTouchEnd);
+			document.removeEventListener('touchcancel', handleTouchEnd);
 		};
 	});
 
@@ -480,6 +484,169 @@
 		localCropHeight = cropHeight;
 	}
 
+	// Touch event handlers for mobile support
+	function handleTouchStart(event: TouchEvent) {
+		if (!cropEnabled || !videoElement) return;
+		
+		const touch = event.touches[0];
+		if (!touch) return;
+		
+		const rect = containerElement.getBoundingClientRect();
+		const touchX = touch.clientX - rect.left;
+		const touchY = touch.clientY - rect.top;
+		
+		const area = detectInteractionArea(touchX, touchY);
+		if (area === 'outside' || area === null) return;
+		
+		// Prevent default scrolling/navigation when interacting with crop rectangle
+		event.preventDefault();
+		event.stopPropagation();
+		
+		if (area === 'corner' || area === 'edge') {
+			const handle = getResizeHandle(touchX, touchY);
+			if (handle) {
+				startResize(handle, touchX, touchY);
+			}
+		} else if (area === 'inside') {
+			startDrag(touchX, touchY);
+		}
+		
+		// Add touch move/end listeners to document
+		document.addEventListener('touchmove', handleTouchMove, { passive: false });
+		document.addEventListener('touchend', handleTouchEnd);
+		document.addEventListener('touchcancel', handleTouchEnd);
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		if (!cropEnabled || !videoElement) return;
+		
+		// Only prevent default if we're actually dragging/resizing
+		if (!isDragging && !isResizing) return;
+		
+		event.preventDefault();
+		event.stopPropagation();
+		
+		const touch = event.touches[0];
+		if (!touch) return;
+		
+		const info = getVideoDisplayInfo();
+		if (!info) return;
+		
+		const rect = containerElement.getBoundingClientRect();
+		const touchX = touch.clientX - rect.left;
+		const touchY = touch.clientY - rect.top;
+		const deltaX = touchX - dragStartX;
+		const deltaY = touchY - dragStartY;
+		
+		if (isDragging) {
+			// Drag the entire crop area
+			const newX = cropStartX + deltaX * info.scaleX;
+			const newY = cropStartY + deltaY * info.scaleY;
+			
+			// Constrain to video bounds
+			const constrainedX = Math.max(0, Math.min(info.naturalWidth - localCropWidth, newX));
+			const constrainedY = Math.max(0, Math.min(info.naturalHeight - localCropHeight, newY));
+			
+			// Update local state immediately for smooth rendering
+			localCropX = constrainedX;
+			localCropY = constrainedY;
+			
+			// Call parent callback
+			onCropChange(constrainedX, constrainedY, localCropWidth, localCropHeight);
+		} else if (isResizing && resizeHandle) {
+			// Resize crop area (same logic as mouse)
+			let newX = cropStartX;
+			let newY = cropStartY;
+			let newWidth = cropStartWidth;
+			let newHeight = cropStartHeight;
+			
+			const deltaVideoX = deltaX * info.scaleX;
+			const deltaVideoY = deltaY * info.scaleY;
+			
+			// Handle different resize handles
+			if (resizeHandle.includes('n')) {
+				newY = cropStartY + deltaVideoY;
+				newHeight = cropStartHeight - deltaVideoY;
+			}
+			if (resizeHandle.includes('s')) {
+				newHeight = cropStartHeight + deltaVideoY;
+			}
+			if (resizeHandle.includes('w')) {
+				newX = cropStartX + deltaVideoX;
+				newWidth = cropStartWidth - deltaVideoX;
+			}
+			if (resizeHandle.includes('e')) {
+				newWidth = cropStartWidth + deltaVideoX;
+			}
+			
+			// Maintain aspect ratio if locked
+			if (aspectRatioLocked && cropStartWidth > 0 && cropStartHeight > 0) {
+				const aspectRatio = cropStartWidth / cropStartHeight;
+				if (resizeHandle.includes('n') || resizeHandle.includes('s')) {
+					newWidth = newHeight * aspectRatio;
+					if (resizeHandle.includes('w') || resizeHandle.includes('nw') || resizeHandle.includes('sw')) {
+						newX = cropStartX + cropStartWidth - newWidth;
+					}
+				} else {
+					newHeight = newWidth / aspectRatio;
+					if (resizeHandle.includes('n') || resizeHandle.includes('nw') || resizeHandle.includes('ne')) {
+						newY = cropStartY + cropStartHeight - newHeight;
+					}
+				}
+			}
+			
+			// Constrain to video bounds and minimum size
+			newWidth = Math.max(MIN_CROP_SIZE, Math.min(info.naturalWidth - newX, newWidth));
+			newHeight = Math.max(MIN_CROP_SIZE, Math.min(info.naturalHeight - newY, newHeight));
+			
+			if (newX < 0) {
+				newWidth += newX;
+				newX = 0;
+			}
+			if (newY < 0) {
+				newHeight += newY;
+				newY = 0;
+			}
+			if (newX + newWidth > info.naturalWidth) {
+				newWidth = info.naturalWidth - newX;
+			}
+			if (newY + newHeight > info.naturalHeight) {
+				newHeight = info.naturalHeight - newY;
+			}
+			
+			// Update local state immediately
+			localCropX = newX;
+			localCropY = newY;
+			localCropWidth = newWidth;
+			localCropHeight = newHeight;
+			
+			// Call parent callback
+			onCropChange(newX, newY, newWidth, newHeight);
+		}
+	}
+
+	function handleTouchEnd(event: TouchEvent) {
+		if (isDragging || isResizing) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
+		
+		isDragging = false;
+		isResizing = false;
+		resizeHandle = null;
+		
+		// Sync local state with props after drag ends
+		localCropX = cropX;
+		localCropY = cropY;
+		localCropWidth = cropWidth;
+		localCropHeight = cropHeight;
+		
+		// Remove touch listeners
+		document.removeEventListener('touchmove', handleTouchMove);
+		document.removeEventListener('touchend', handleTouchEnd);
+		document.removeEventListener('touchcancel', handleTouchEnd);
+	}
+
 	// Update crop when aspect ratio preset is selected
 	$: if (cropEnabled && aspectRatioLocked && cropWidth > 0 && cropHeight > 0) {
 		// This will be handled by the parent component
@@ -510,6 +677,7 @@
 		style="cursor: {isDragging || isResizing ? 'grabbing' : currentCursor};"
 		on:mousedown={handleMouseDown}
 		on:mousemove={handleMouseMoveForCursor}
+		on:touchstart={handleTouchStart}
 		role={cropEnabled ? 'application' : undefined}
 		aria-label={cropEnabled ? 'Video preview with crop controls' : undefined}
 	>
@@ -559,6 +727,11 @@
 <style>
 	.video-preview {
 		position: relative;
+	}
+	
+	/* Disable default touch behaviors when crop is enabled to prevent scrolling/navigation */
+	.video-preview > div[role="application"] {
+		touch-action: none;
 	}
 </style>
 
