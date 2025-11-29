@@ -33,3 +33,5 @@ Write-Host "The app will now use these local files instead of CDN." -ForegroundC
 Write-Host "Make sure to commit these files to your repository." -ForegroundColor Cyan
 
 
+
+

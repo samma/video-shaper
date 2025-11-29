@@ -64,9 +64,9 @@ The FFmpeg.wasm files add ~31MB to your repository:
 
 To update to a newer version of FFmpeg.wasm:
 
-1. Update the version in `scripts/download-ffmpeg.sh` or `scripts/download-ffmpeg.ps1`
-2. Update the version in `src/lib/ffmpeg/FFmpegService.ts` (line 76)
-3. Run the download script again
+1. Update the version in `scripts/download-ffmpeg.js`, `scripts/download-ffmpeg.sh`, or `scripts/download-ffmpeg.ps1`
+2. Update the version in `src/lib/ffmpeg/FFmpegService.ts` (line 120)
+3. Run the download script again: `npm run download-ffmpeg`
 4. Test thoroughly
 5. Commit and deploy
 
@@ -102,5 +102,7 @@ The FFmpeg files (~31MB) are served separately, not bundled. They're loaded on-d
 ### CDN Fallback Not Working
 
 If local files fail and CDN is also unavailable, the app will show an error message. This is expected behavior - the app cannot function without FFmpeg.wasm.
+
+
 
 
