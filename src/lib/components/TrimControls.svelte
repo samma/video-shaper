@@ -1,5 +1,6 @@
 <script lang="ts">
 	import TimelineSlider from './TimelineSlider.svelte';
+	import InfoTooltip from './InfoTooltip.svelte';
 
 	export let trimEnabled: boolean = true;
 	export let duration: number = 0;
@@ -51,22 +52,28 @@
 	<div class="space-y-4">
 		<div class="flex items-center justify-between mb-2">
 			<h3 class="text-lg font-semibold text-gray-200">Trim Video</h3>
-			<button
-				on:click={handleToggle}
-				disabled={disabled}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-					{trimEnabled ? 'bg-teal-600' : 'bg-gray-600'}
-					{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
-				role="switch"
-				aria-checked={trimEnabled}
-				aria-label="Toggle trim"
-				aria-disabled={disabled}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-						{trimEnabled ? 'translate-x-6' : 'translate-x-1'}"
-				></span>
-			</button>
+			<div class="flex items-center gap-2">
+				<InfoTooltip
+					content="Trim removes unwanted parts from the beginning or end of your video. Use the timeline slider to select the exact start and end times you want to keep. The rest of the video will be removed."
+					position="top"
+				/>
+				<button
+					on:click={handleToggle}
+					disabled={disabled}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+						{trimEnabled ? 'bg-teal-600' : 'bg-gray-600'}
+						{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+					role="switch"
+					aria-checked={trimEnabled}
+					aria-label="Toggle trim"
+					aria-disabled={disabled}
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+							{trimEnabled ? 'translate-x-6' : 'translate-x-1'}"
+					></span>
+				</button>
+			</div>
 		</div>
 
 		{#if trimEnabled}

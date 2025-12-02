@@ -1,4 +1,6 @@
 <script lang="ts">
+	import InfoTooltip from './InfoTooltip.svelte';
+
 	export let compressionEnabled: boolean = false;
 	export let crf: number = 23; // Default CRF value (balanced quality/size)
 	export let disabled: boolean = false;
@@ -50,22 +52,28 @@
 	<div class="space-y-4">
 		<div class="flex items-center justify-between mb-2">
 			<h3 class="text-lg font-semibold text-gray-200">Compression</h3>
-			<button
-				on:click={handleToggle}
-				disabled={disabled}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-					{compressionEnabled ? 'bg-teal-600' : 'bg-gray-600'}
-					{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
-				role="switch"
-				aria-checked={compressionEnabled}
-				aria-label="Toggle compression"
-				aria-disabled={disabled}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-						{compressionEnabled ? 'translate-x-6' : 'translate-x-1'}"
-				></span>
-			</button>
+			<div class="flex items-center gap-2">
+				<InfoTooltip
+					content="Compression reduces file size by lowering video quality. Move the slider left for smaller files (lower quality) or right for better quality (larger files). Note: Compression requires more processing time and browser memory, especially for large videos."
+					position="top"
+				/>
+				<button
+					on:click={handleToggle}
+					disabled={disabled}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+						{compressionEnabled ? 'bg-teal-600' : 'bg-gray-600'}
+						{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+					role="switch"
+					aria-checked={compressionEnabled}
+					aria-label="Toggle compression"
+					aria-disabled={disabled}
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+							{compressionEnabled ? 'translate-x-6' : 'translate-x-1'}"
+					></span>
+				</button>
+			</div>
 		</div>
 
 		{#if compressionEnabled}

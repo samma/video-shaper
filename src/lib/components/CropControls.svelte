@@ -1,4 +1,6 @@
 <script lang="ts">
+	import InfoTooltip from './InfoTooltip.svelte';
+
 	export let cropEnabled: boolean = false;
 	export let aspectRatioLocked: boolean = false;
 	export let disabled: boolean = false;
@@ -48,22 +50,28 @@
 	<div class="space-y-4">
 		<div class="flex items-center justify-between mb-2">
 			<h3 class="text-lg font-semibold text-gray-200">Crop Video</h3>
-			<button
-				on:click={handleToggle}
-				disabled={disabled}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-					{cropEnabled ? 'bg-teal-600' : 'bg-gray-600'}
-					{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
-				role="switch"
-				aria-checked={cropEnabled}
-				aria-label="Toggle crop"
-				aria-disabled={disabled}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-						{cropEnabled ? 'translate-x-6' : 'translate-x-1'}"
-				></span>
-			</button>
+			<div class="flex items-center gap-2">
+				<InfoTooltip
+					content="Crop adjusts the video frame dimensions by removing parts from the edges. Click and drag the crop rectangle on the video preview to select the area you want to keep. You can lock the aspect ratio or use presets like 16:9, 9:16, or 1:1."
+					position="top"
+				/>
+				<button
+					on:click={handleToggle}
+					disabled={disabled}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+						{cropEnabled ? 'bg-teal-600' : 'bg-gray-600'}
+						{disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+					role="switch"
+					aria-checked={cropEnabled}
+					aria-label="Toggle crop"
+					aria-disabled={disabled}
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+							{cropEnabled ? 'translate-x-6' : 'translate-x-1'}"
+					></span>
+				</button>
+			</div>
 		</div>
 
 		{#if cropEnabled}
