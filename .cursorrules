@@ -52,15 +52,19 @@ This requires:
 1. **Module/Syntax Loading Tests** (< 1 second)
    - Must run FIRST - catches syntax errors and import failures
    - If modules don't load, feature tests are meaningless
+   - Location: `tests/unit/module-loading.test.ts`
 2. **Unit Tests** (< 5 seconds)
    - Individual functions work correctly
    - Edge cases and boundaries covered
+   - Mock external dependencies for speed
 3. **Integration Tests** (< 30 seconds)
    - Features work end-to-end
    - Real code paths, minimal mocking
-4. **Regression Tests** (as needed)
-   - Old features still work
-   - Bugs stay fixed
+   - Use real external dependencies
+4. **E2E Tests** (< 2 minutes)
+   - Full browser/workflow testing
+   - Test against production builds
+   - Complete user workflows
 
 **Test Requirements:**
 - Tests execute via single command: `npm test` | `cargo test` | `pytest` | `just test`
@@ -69,11 +73,42 @@ This requires:
 - Tests are deterministic and reproducible
 - Each test has clear pass/fail criteria
 
+**Test Report Generation (REQUIRED):**
+- Always generate dual-format reports:
+  - **JSON format**: Machine-readable, parseable by AI (`test-results.json`)
+  - **Markdown format**: Human-readable, quick status check (`test-analysis.md`)
+- Chain report generation in test script: `test && generate-report`
+- Reports must include:
+  - Timestamp
+  - Summary (total/passed/failed/skipped/duration)
+  - Test details (name, status, duration, error messages)
+  - Recommendations (next steps based on results)
+- Reports persist to project root for easy access
+
+**Test Script Pattern:**
+```json
+{
+  "scripts": {
+    "test": "vitest run && node scripts/generate-test-report.js",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
+  }
+}
+```
+
+**Why Chain:**
+- Single command does everything
+- Reports always generated (no manual step)
+- Fails fast if tests fail (report generation skipped)
+- Consistent across all environments
+
 **After Every Code Change:**
 ```
 1. Run syntax/module tests (< 1s) - fix if failed
-2. Run integration tests (< 5s) - fix if failed
-3. Only proceed when tests pass
+2. Run unit tests (< 5s) - fix if failed
+3. Run integration tests (< 30s) - fix if failed
+4. Only proceed when tests pass
 ```
 
 ### 2. Logging Loop - "What happened?"
@@ -196,7 +231,8 @@ Examples:
 ### Test Quality
 - Write tests alongside implementation (not after)
 - Tests must be independent and isolated
-- Use mocks/stubs for external dependencies
+- Use mocks/stubs for external dependencies in unit tests
+- Use real dependencies in integration tests
 - Keep tests fast and deterministic
 - Test behavior, not implementation details
 - Use descriptive test names: `should_return_error_when_user_not_found()`
@@ -211,6 +247,94 @@ Examples:
 - Aim for >80% coverage on critical paths
 - 100% coverage on business logic
 - Don't chase 100% everywhere - focus on value
+
+### Module Loading Test Template
+
+**Required:** Every project must have a module-loading test as the first test.
+
+**Location:** `tests/unit/module-loading.test.ts`
+
+**Template:**
+```typescript
+import { describe, it, expect } from 'vitest';
+
+describe('Module Loading Tests', () => {
+  it('should load without errors', () => {
+    // This test verifies that the test file itself loads
+    expect(true).toBe(true);
+  });
+
+  it('should be able to import test utilities', () => {
+    // Verify test framework is available
+    expect(describe).toBeDefined();
+    expect(it).toBeDefined();
+    expect(expect).toBeDefined();
+  });
+
+  // Add more basic imports as needed
+  it('should be able to import core modules', async () => {
+    // Import your main modules to catch syntax errors
+    // Example:
+    // const { MyService } = await import('$lib/services/MyService');
+    // expect(MyService).toBeDefined();
+  });
+});
+```
+
+**Why Critical:**
+- Catches syntax errors before feature tests run
+- Validates test infrastructure works
+- Fastest possible feedback (< 1s)
+- Prevents "all tests pass but app won't load" scenarios
+
+### External Dependency Handling
+
+When working with large external dependencies (WASM, binaries, CDN resources, large libraries):
+
+**Build Configuration:**
+- Exclude from bundling: Add to `optimizeDeps.exclude` in Vite/Webpack config
+- Prevent bundling issues with large files
+- Example: `optimizeDeps: { exclude: ['@large-library/core'] }`
+
+**Testing Strategy:**
+- **Unit Tests**: Mock external dependencies for speed and determinism
+  - Use `vi.mock()` (Vitest) or equivalent mocking framework
+  - Focus on testing your code logic, not external library behavior
+- **Integration Tests**: Use real dependencies to verify actual behavior
+  - Test that external library integration works correctly
+  - Verify initialization, configuration, and error handling
+
+**Self-Hosting Strategy:**
+- Provide download scripts for all platforms:
+  - PowerShell (`*.ps1`) for Windows
+  - Bash (`*.sh`) for Linux/Mac
+  - Node.js (`*.js`) as universal fallback
+- Implement local-first loading with CDN fallback:
+  ```typescript
+  const localBaseURL = '/static/external-lib';
+  const cdnURL = 'https://cdn.example.com/lib';
+  
+  let baseURL: string;
+  try {
+    // Check if local files exist
+    const response = await fetch(localBaseURL + '/check');
+    if (response.ok) {
+      baseURL = localBaseURL;
+      console.log('[Service] Loading from local files (self-hosted)');
+    } else {
+      throw new Error('Local files not found');
+    }
+  } catch (error) {
+    baseURL = cdnURL;
+    console.log('[Service] Loading from CDN (fallback)');
+  }
+  ```
+- Benefits: Works offline, resilient to CDN outages, better performance, long-term sustainability, privacy
+
+**Version Management:**
+- Pin versions in download scripts
+- Document update process
+- Keep version numbers in one place for easy updates
 
 ## Workflow Patterns
 
@@ -242,9 +366,10 @@ When user reports: "Feature X is broken"
 After every code change:
 
 1. Run syntax/module tests (< 1s) - fix if failed
-2. Run integration tests (< 5s) - fix if failed
-3. If passed: proceed with confidence
-4. Never move forward with failing tests
+2. Run unit tests (< 5s) - fix if failed
+3. Run integration tests (< 30s) - fix if failed
+4. If passed: proceed with confidence
+5. Never move forward with failing tests
 ```
 
 ### Pattern 4: Post-Session Review
@@ -257,6 +382,78 @@ At start of new session:
 4. Identify patterns/issues
 5. Continue with context from previous session
 ```
+
+### Pattern 5: Build Verification
+
+After implementing features or before deployment:
+
+1. **Run build command** - `npm run build` | `cargo build` | `python -m build`
+2. **Verify build succeeds** - Check for errors, warnings, or failures
+3. **Test production build** - `npm run preview` | `cargo run --release` | serve built artifacts
+4. **Run E2E tests against production** - Test actual production build, not dev build
+5. **Verify static assets** - Check that all assets load correctly
+6. **Check bundle sizes** - Ensure sizes are reasonable and documented
+
+**E2E Configuration Pattern:**
+```typescript
+// playwright.config.ts or equivalent
+webServer: {
+  command: 'npm run build && npm run preview',
+  port: 4173
+}
+```
+
+**Why Critical:**
+- Dev builds may work but production builds fail
+- Production optimizations can break features
+- Static assets may not be included correctly
+- Bundle sizes can grow unexpectedly
+
+**After Every Major Change:**
+- Build must succeed
+- Production preview must work
+- E2E tests must pass against production build
+
+### Pattern 6: Incremental Development
+
+When building new features, follow this strict order:
+
+1. **Module-loading test** (< 1s)
+   - Create `tests/unit/module-loading.test.ts`
+   - Verify test infrastructure works
+   - Verify basic imports succeed
+   - Catch syntax/import errors immediately
+
+2. **Unit test** (< 5s)
+   - Write test for individual function/class
+   - Test should fail initially (TDD)
+   - Focus on one function at a time
+
+3. **Implement feature** (minimal code)
+   - Write minimal code to pass test
+   - Don't over-engineer
+   - Keep it simple
+
+4. **Integration test** (< 30s)
+   - Test with real dependencies
+   - Verify external integrations work
+   - Test error handling
+
+5. **E2E test** (< 2min)
+   - Test full user workflow
+   - Test in real browser environment
+   - Verify UI interactions work
+
+6. **Run all tests**
+   - Verify nothing broke
+   - Check test reports
+   - Fix any failures before proceeding
+
+**Rules:**
+- Never skip steps
+- Never proceed with failing tests
+- Each step must pass before moving to next
+- Run tests after every code change
 
 ## Language-Specific Guidelines
 
@@ -334,6 +531,10 @@ Before considering code complete:
 
 6. **Debug dumps should auto-generate on errors** - errors without context are hard to debug. Global error handlers should create debug dumps automatically.
 
+7. **External dependencies need special handling** - exclude from bundling, mock in unit tests, real in integration tests, self-host with fallback.
+
+8. **E2E tests should test production builds** - dev builds may work but production builds can fail due to optimizations.
+
 ## File Organization
 
 ### Required Output Files
@@ -353,6 +554,36 @@ Before considering code complete:
 **Debug Snapshots** (structured format):
 - `debug/debug-{timestamp}.json`
 - Content: timestamp, state, logs, performance, errors
+
+### Cross-Platform Scripts
+
+When providing utility scripts (downloads, setup, etc.):
+
+**Required Formats:**
+- **PowerShell** (`*.ps1`) - For Windows users
+- **Bash** (`*.sh`) - For Linux/Mac users  
+- **Node.js** (`*.js`) - Universal fallback, works everywhere
+
+**Script Organization:**
+```
+scripts/
+├── download-asset.js      # Universal Node.js version
+├── download-asset.ps1     # Windows PowerShell version
+└── download-asset.sh      # Linux/Mac Bash version
+```
+
+**Documentation Requirements:**
+- Clear instructions for each platform
+- Prerequisites listed (Node.js version, permissions, etc.)
+- Example usage for each script
+- Troubleshooting section
+
+**Best Practices:**
+- Keep scripts simple and focused
+- Use consistent naming across platforms
+- Handle errors gracefully
+- Provide clear output messages
+- Make scripts idempotent (safe to run multiple times)
 
 ## Decision Making
 
@@ -393,6 +624,9 @@ When facing choices:
 - ❌ No debug on failure - auto-generate debug dump when tests fail
 - ❌ Only in-memory logging - always persist to timestamped files
 - ❌ Skipping module loading tests - first test must verify code loads
+- ❌ Testing dev builds only - E2E should test production builds
+- ❌ No test reports - always generate JSON + Markdown
+- ❌ Bundling large external dependencies - exclude from bundling
 
 ## Guardrails & Validation
 
@@ -443,4 +677,3 @@ AI can then:
 ---
 
 **Remember:** These rules are guidelines informed by real projects. Adapt to the specific needs of this codebase while maintaining the core principles of autonomous verification, persistent feedback, and structured output.
-
