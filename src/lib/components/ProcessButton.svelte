@@ -15,9 +15,12 @@
 	{#if processing}
 		<button
 			on:click={onCancel}
-			class="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white bg-red-600 hover:bg-red-500 active:bg-red-700 transition-all"
+			class="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white bg-red-600 hover:bg-red-500 active:bg-red-700 transition-all flex items-center justify-center gap-2"
 		>
-			Cancel
+			<svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+			</svg>
+			<span>Cancel</span>
 		</button>
 		<button
 			disabled
@@ -52,12 +55,15 @@
 		<button
 			on:click={onProcess}
 			disabled={buttonDisabled}
-			class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white transition-all
+			class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base text-white transition-all flex items-center justify-center gap-2
 				{buttonDisabled
 				? 'bg-gray-600 cursor-not-allowed text-gray-400'
 				: 'bg-teal-600 hover:bg-teal-500 active:bg-teal-700'}"
 		>
-			Process Video
+			<svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+			</svg>
+			<span>Process Video</span>
 		</button>
 	{/if}
 </div>

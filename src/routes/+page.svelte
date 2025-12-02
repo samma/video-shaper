@@ -421,13 +421,14 @@
 		{#if selectedFile}
 			<button
 				on:click={goBack}
-				class="absolute top-0 left-0 p-2 hover:bg-gray-800 rounded-lg transition-colors bg-gray-900/80 backdrop-blur-sm border border-gray-700"
+				class="absolute top-0 left-0 flex items-center gap-2 px-3 py-2 hover:bg-gray-800 rounded-lg transition-colors bg-gray-900/80 backdrop-blur-sm border border-gray-700 text-gray-200 hover:text-white"
 				aria-label="Go back to file selection"
-				title="Go back"
 			>
-				<svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				<!-- More recognizable back arrow icon -->
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
+				<span class="text-sm font-medium hidden sm:inline">Back</span>
 			</button>
 		{/if}
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
@@ -739,13 +740,16 @@
 											<p class="text-yellow-200 font-semibold text-sm sm:text-base mb-1">Warning</p>
 											<p class="text-yellow-300 text-xs sm:text-sm">{processingWarning}</p>
 										</div>
-										<button
-											on:click={handleDismissWarning}
-											class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0"
-											aria-label="Hide warning"
-										>
-											Hide
-										</button>
+									<button
+										on:click={handleDismissWarning}
+										class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0 flex items-center gap-1.5"
+										aria-label="Hide warning"
+									>
+										<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+										</svg>
+										<span>Hide</span>
+									</button>
 									</div>
 								</div>
 							{/if}
@@ -777,10 +781,13 @@
 									</div>
 									<button
 										on:click={goBack}
-										class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap"
+										class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap flex items-center gap-1.5"
 										disabled={processing}
 									>
-										Change Video
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+										</svg>
+										<span>Change Video</span>
 									</button>
 								</div>
 							</div>
