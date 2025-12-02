@@ -494,7 +494,7 @@
 			Free Video Shaper
 		</h1>
 		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
-			Trim, Crop and Compress videos for free • No Uploads • Fast on your device
+			Trim, Crop and Compress videos for free without uploading anything
 		</p>
 
 		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
