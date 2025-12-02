@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import FFmpegLoader from '$lib/components/FFmpegLoader.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import VideoPreview from '$lib/components/VideoPreview.svelte';
@@ -110,6 +111,8 @@
 
 	function handleFileSelect(file: File) {
 		selectedFile = file;
+		// Push state to browser history so back button works
+		history.pushState({ editing: true }, '');
 		// Reset FFmpeg service - it will be recreated when FFmpegLoader mounts
 		ffmpegService = null;
 		ffmpegError = '';
@@ -133,6 +136,27 @@
 		videoWidth = 0;
 		videoHeight = 0;
 	}
+
+	function goBack() {
+		selectedFile = null;
+		ffmpegService = null;
+		ffmpegError = '';
+	}
+
+	onMount(() => {
+		// Handle browser back button
+		const handlePopState = (event: PopStateEvent) => {
+			if (selectedFile) {
+				goBack();
+			}
+		};
+
+		window.addEventListener('popstate', handlePopState);
+
+		return () => {
+			window.removeEventListener('popstate', handlePopState);
+		};
+	});
 
 	function handleDurationLoad(duration: number) {
 		videoDuration = duration;
@@ -392,7 +416,20 @@
 </svelte:head>
 
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
-	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
+	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8 relative">
+		<!-- Back button in upper left corner - only visible when editing -->
+		{#if selectedFile}
+			<button
+				on:click={goBack}
+				class="absolute top-0 left-0 p-2 hover:bg-gray-800 rounded-lg transition-colors bg-gray-900/80 backdrop-blur-sm border border-gray-700"
+				aria-label="Go back to file selection"
+				title="Go back"
+			>
+				<svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				</svg>
+			</button>
+		{/if}
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
 			Free Video Shaper
 		</h1>
@@ -729,17 +766,24 @@
 								</div>
 							{/if}
 
-							<button
-								on:click={() => {
-									selectedFile = null;
-									ffmpegService = null;
-									ffmpegError = '';
-								}}
-								class="w-full py-2 sm:py-2.5 px-4 text-sm sm:text-base border border-gray-600 rounded-lg text-gray-200 hover:bg-gray-700 active:bg-gray-600 transition-colors"
-								disabled={processing}
-							>
-								Choose Another Video
-							</button>
+							<!-- File info card at bottom -->
+							<div class="bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-600">
+								<div class="flex items-center justify-between">
+									<div class="min-w-0 flex-1">
+										<p class="text-xs sm:text-sm text-gray-400 mb-1">Current video</p>
+										<p class="text-sm sm:text-base text-gray-300 truncate" title={selectedFile?.name}>
+											{selectedFile?.name}
+										</p>
+									</div>
+									<button
+										on:click={goBack}
+										class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap"
+										disabled={processing}
+									>
+										Change Video
+									</button>
+								</div>
+							</div>
 						</div>
 					{:else}
 						<!-- FFmpegLoader will show its own loading state with progress bar -->
