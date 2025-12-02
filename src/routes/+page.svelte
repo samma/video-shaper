@@ -14,6 +14,8 @@
 	let ffmpegService: FFmpegService | null = null;
 	let ffmpegError = '';
 	let ffmpegLoading = false;
+	let ffmpegLoadPromise: Promise<FFmpegService> | null = null;
+	let ffmpegLoadResolve: ((service: FFmpegService) => void) | null = null;
 
 	// Video state
 	let selectedFile: File | null = null;
@@ -98,6 +100,12 @@
 	function handleFFmpegReady(service: FFmpegService) {
 		ffmpegService = service;
 		console.log('FFmpeg is ready!');
+		// Resolve the promise if it exists
+		if (ffmpegLoadResolve) {
+			ffmpegLoadResolve(service);
+			ffmpegLoadResolve = null;
+			ffmpegLoadPromise = null;
+		}
 	}
 
 	function handleFFmpegError(error: Error) {
@@ -116,6 +124,10 @@
 		// Reset FFmpeg service - it will be recreated when FFmpegLoader mounts
 		ffmpegService = null;
 		ffmpegError = '';
+		// Create a promise that will resolve when FFmpeg is ready
+		ffmpegLoadPromise = new Promise((resolve) => {
+			ffmpegLoadResolve = resolve;
+		});
 		// Reset trim times
 		startTime = 0;
 		endTime = 0;
@@ -141,6 +153,8 @@
 		selectedFile = null;
 		ffmpegService = null;
 		ffmpegError = '';
+		ffmpegLoadPromise = null;
+		ffmpegLoadResolve = null;
 	}
 
 	onMount(() => {
@@ -258,7 +272,40 @@
 	}
 
 	async function handleProcess() {
-		if (!ffmpegService || !selectedFile) return;
+		if (!selectedFile) return;
+
+		// Clear any previous errors and start processing
+		processingError = '';
+		processing = true;
+		processingProgress = 0;
+		processingStatus = '';
+
+		// If FFmpeg is not ready yet, wait for it
+		if (!ffmpegService) {
+			if (ffmpegLoading && ffmpegLoadPromise) {
+				// FFmpeg is loading, wait for it
+				processingStatus = 'Loading video processor...';
+				try {
+					// Wait for FFmpeg to be ready
+					await ffmpegLoadPromise;
+					// Service should be set by handleFFmpegReady
+					if (!ffmpegService) {
+						processingError = 'Failed to load video processor';
+						processing = false;
+						return;
+					}
+				} catch (error) {
+					processingError = 'Failed to load video processor';
+					processing = false;
+					return;
+				}
+			} else {
+				// FFmpeg hasn't started loading yet
+				processingError = 'Video processor not available';
+				processing = false;
+				return;
+			}
+		}
 
 		// Check for warnings about large files with compression
 		processingWarning = '';
@@ -278,12 +325,6 @@
 				// Continue processing - warning is informational only
 			}
 		}
-
-		// Clear any previous errors and proceed
-		processingError = '';
-		processing = true;
-		processingProgress = 0;
-		processingStatus = '';
 
 		// Clean up any existing timeouts
 		if (initialDelayTimeout !== null) {
@@ -660,150 +701,145 @@
 						{/if}
 					</div>
 			{:else}
-				<!-- Only load FFmpeg AFTER a file is selected -->
-				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange}>
-					{#if ffmpegService}
-						<!-- FFmpeg loaded - show full editor -->
-						<div class="space-y-4 sm:space-y-6">
-							<VideoPreview
-								bind:this={videoPreviewComponent}
-								videoFile={selectedFile}
-								onDurationLoad={handleDurationLoad}
-								onVideoMetadataLoad={handleVideoMetadataLoad}
-								{cropEnabled}
-								{cropX}
-								{cropY}
-								{cropWidth}
-								{cropHeight}
-								{aspectRatioLocked}
-								onCropChange={handleCropChange}
-							/>
+				<!-- Load FFmpeg silently in background when file is selected -->
+				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange} silent={true} />
 
-							<TrimControls
-								bind:trimEnabled
-								duration={videoDuration}
-								bind:startTime
-								bind:endTime
-								disabled={processing}
-								onTrimToggle={(enabled) => (trimEnabled = enabled)}
-								onStartChange={(time) => (startTime = time)}
-								onEndChange={(time) => (endTime = time)}
-								onSeek={seekVideo}
-							/>
+				<!-- Show editor immediately when file is selected -->
+				<div class="space-y-4 sm:space-y-6">
+					<VideoPreview
+						bind:this={videoPreviewComponent}
+						videoFile={selectedFile}
+						onDurationLoad={handleDurationLoad}
+						onVideoMetadataLoad={handleVideoMetadataLoad}
+						{cropEnabled}
+						{cropX}
+						{cropY}
+						{cropWidth}
+						{cropHeight}
+						{aspectRatioLocked}
+						onCropChange={handleCropChange}
+					/>
 
-							<CropControls
-								bind:cropEnabled
-								bind:aspectRatioLocked
-								disabled={processing}
-								cropWidth={cropWidth}
-								cropHeight={cropHeight}
-								onCropToggle={handleCropToggle}
-								onAspectRatioLockToggle={handleAspectRatioLockToggle}
-								onPresetSelect={handlePresetSelect}
-							/>
+					<TrimControls
+						bind:trimEnabled
+						duration={videoDuration}
+						bind:startTime
+						bind:endTime
+						disabled={processing}
+						onTrimToggle={(enabled) => (trimEnabled = enabled)}
+						onStartChange={(time) => (startTime = time)}
+						onEndChange={(time) => (endTime = time)}
+						onSeek={seekVideo}
+					/>
 
-							<CompressionControls
-								bind:compressionEnabled
-								bind:crf
-								disabled={processing}
-								onCompressionToggle={(enabled) => {
-									compressionEnabled = enabled;
-									processingWarning = ''; // Clear warning when compression is toggled
-								}}
-								onCrfChange={(value) => (crf = value)}
-							/>
+					<CropControls
+						bind:cropEnabled
+						bind:aspectRatioLocked
+						disabled={processing}
+						cropWidth={cropWidth}
+						cropHeight={cropHeight}
+						onCropToggle={handleCropToggle}
+						onAspectRatioLockToggle={handleAspectRatioLockToggle}
+						onPresetSelect={handlePresetSelect}
+					/>
 
-							{#if estimatedSize > 0}
-								<div class="bg-gray-700 rounded-lg p-3 sm:p-4">
-									<div class="flex items-center justify-between">
-										<span class="text-gray-300 text-sm sm:text-base">Estimated Output Size:</span>
-										<span class="text-teal-400 font-semibold text-base sm:text-lg">
-											~{formatFileSizeMB(estimatedSize)}
-										</span>
-									</div>
-									{#if selectedFile}
-										<div class="mt-2 text-xs sm:text-sm text-gray-400">
-											Original: {formatFileSizeMB(selectedFile.size)} • 
-											Reduction: {Math.round((1 - estimatedSize / selectedFile.size) * 100)}%
-										</div>
-									{/if}
+					<CompressionControls
+						bind:compressionEnabled
+						bind:crf
+						disabled={processing}
+						onCompressionToggle={(enabled) => {
+							compressionEnabled = enabled;
+							processingWarning = ''; // Clear warning when compression is toggled
+						}}
+						onCrfChange={(value) => (crf = value)}
+					/>
+
+					{#if estimatedSize > 0}
+						<div class="bg-gray-700 rounded-lg p-3 sm:p-4">
+							<div class="flex items-center justify-between">
+								<span class="text-gray-300 text-sm sm:text-base">Estimated Output Size:</span>
+								<span class="text-teal-400 font-semibold text-base sm:text-lg">
+									~{formatFileSizeMB(estimatedSize)}
+								</span>
+							</div>
+							{#if selectedFile}
+								<div class="mt-2 text-xs sm:text-sm text-gray-400">
+									Original: {formatFileSizeMB(selectedFile.size)} • 
+									Reduction: {Math.round((1 - estimatedSize / selectedFile.size) * 100)}%
 								</div>
 							{/if}
+						</div>
+					{/if}
 
-							{#if processingWarning}
-								<div class="bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 sm:p-4 mb-4">
-									<div class="flex items-start gap-3">
-										<svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-										</svg>
-										<div class="flex-1">
-											<p class="text-yellow-200 font-semibold text-sm sm:text-base mb-1">Warning</p>
-											<p class="text-yellow-300 text-xs sm:text-sm">{processingWarning}</p>
-										</div>
-									<button
-										on:click={handleDismissWarning}
-										class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0 flex items-center gap-1.5"
-										aria-label="Hide warning"
-									>
-										<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-										</svg>
-										<span>Hide</span>
-									</button>
-									</div>
+					{#if processingWarning}
+						<div class="bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 sm:p-4 mb-4">
+							<div class="flex items-start gap-3">
+								<svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+									<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+								</svg>
+								<div class="flex-1">
+									<p class="text-yellow-200 font-semibold text-sm sm:text-base mb-1">Warning</p>
+									<p class="text-yellow-300 text-xs sm:text-sm">{processingWarning}</p>
 								</div>
-							{/if}
-
-							<ProcessButton
-								onProcess={handleProcess}
-								onCancel={handleCancel}
-								{processing}
-								progress={processingProgress}
-								status={processingStatus}
-								disabled={!ffmpegService || videoDuration === 0}
-							/>
-
-							{#if processingError}
-								<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
-									<p class="text-red-200 font-semibold text-sm sm:text-base">Error</p>
-									<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
-								</div>
-							{/if}
-
-							<!-- File info card at bottom -->
-							<div class="bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-600">
-								<div class="flex items-center justify-between">
-									<div class="min-w-0 flex-1">
-										<p class="text-xs sm:text-sm text-gray-400 mb-1">Current video</p>
-										<p class="text-sm sm:text-base text-gray-300 truncate" title={selectedFile?.name}>
-											{selectedFile?.name}
-										</p>
-									</div>
-									<button
-										on:click={goBack}
-										class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap flex items-center gap-1.5"
-										disabled={processing}
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-										</svg>
-										<span>Change Video</span>
-									</button>
-								</div>
+							<button
+								on:click={handleDismissWarning}
+								class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0 flex items-center gap-1.5"
+								aria-label="Hide warning"
+							>
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+								<span>Hide</span>
+							</button>
 							</div>
 						</div>
-					{:else}
-						<!-- FFmpegLoader will show its own loading state with progress bar -->
-						<!-- This empty div ensures the slot content is shown -->
 					{/if}
-				</FFmpegLoader>
 
-				{#if ffmpegError}
-					<div class="mt-4 bg-red-900/50 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
-						<p class="text-red-200 font-semibold text-sm sm:text-base mb-1">Failed to Load Video Processor</p>
-						<p class="text-red-300 text-xs sm:text-sm">{ffmpegError}</p>
+					<ProcessButton
+						onProcess={handleProcess}
+						onCancel={handleCancel}
+						{processing}
+						progress={processingProgress}
+						status={processingStatus}
+						disabled={videoDuration === 0}
+					/>
+
+					{#if processingError}
+						<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
+							<p class="text-red-200 font-semibold text-sm sm:text-base">Error</p>
+							<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
+						</div>
+					{/if}
+
+					{#if ffmpegError}
+						<div class="bg-red-900/50 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
+							<p class="text-red-200 font-semibold text-sm sm:text-base mb-1">Failed to Load Video Processor</p>
+							<p class="text-red-300 text-xs sm:text-sm">{ffmpegError}</p>
+						</div>
+					{/if}
+
+					<!-- File info card at bottom -->
+					<div class="bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-600">
+						<div class="flex items-center justify-between">
+							<div class="min-w-0 flex-1">
+								<p class="text-xs sm:text-sm text-gray-400 mb-1">Current video</p>
+								<p class="text-sm sm:text-base text-gray-300 truncate" title={selectedFile?.name}>
+									{selectedFile?.name}
+								</p>
+							</div>
+							<button
+								on:click={goBack}
+								class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap flex items-center gap-1.5"
+								disabled={processing}
+							>
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+								</svg>
+								<span>Edit another video</span>
+							</button>
+						</div>
 					</div>
-				{/if}
+				</div>
 			{/if}
 		</div>
 	</main>
