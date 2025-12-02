@@ -17,15 +17,55 @@
 	let isDraggingEnd = false;
 	let isDraggingRange = false;
 
-	$: startPercent = duration > 0 ? (startTime / duration) * 100 : 0;
-	$: endPercent = duration > 0 ? (endTime / duration) * 100 : 100;
+	// Constrain handle positions to account for handle size (handles are centered, so we need offset)
+	// Handles are ~32-40px wide, so we need ~2-2.5% offset on each side (assuming ~800px container width)
+	const HANDLE_OFFSET = 2.5; // Percentage offset to prevent handles from touching edges
+	
+	$: startPercent = duration > 0 
+		? HANDLE_OFFSET + ((startTime / duration) * (100 - HANDLE_OFFSET * 2)) 
+		: HANDLE_OFFSET;
+	$: endPercent = duration > 0 
+		? HANDLE_OFFSET + ((endTime / duration) * (100 - HANDLE_OFFSET * 2)) 
+		: 100 - HANDLE_OFFSET;
 	$: rangeWidth = endPercent - startPercent;
 
+	/**
+	 * Convert visual position (clientX) to time value accounting for handle offset
+	 */
 	function getTimeFromPosition(clientX: number): number {
 		if (!containerElement) return 0;
 		const rect = containerElement.getBoundingClientRect();
-		const percent = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-		return (percent / 100) * duration;
+		const visualPercent = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+		// Map from visual percent (0-100%) to time percent accounting for handle offset
+		const timePercent = Math.max(0, Math.min(100, ((visualPercent - HANDLE_OFFSET) / (100 - HANDLE_OFFSET * 2)) * 100));
+		return (timePercent / 100) * duration;
+	}
+
+	/**
+	 * Handle drag updates for start, end, or range handles
+	 */
+	function handleDragUpdate(newTime: number) {
+		if (isDraggingStart) {
+			const newStart = Math.max(0, Math.min(newTime, endTime - 0.1));
+			if (Math.abs(newStart - startTime) > 0.01) {
+				onStartChange(newStart);
+				onSeek(newStart);
+			}
+		} else if (isDraggingEnd) {
+			const newEnd = Math.max(startTime + 0.1, Math.min(newTime, duration));
+			if (Math.abs(newEnd - endTime) > 0.01) {
+				onEndChange(newEnd);
+				onSeek(newEnd);
+			}
+		} else if (isDraggingRange) {
+			const rangeDuration = endTime - startTime;
+			const newStart = Math.max(0, Math.min(newTime - rangeDuration / 2, duration - rangeDuration));
+			const newEnd = newStart + rangeDuration;
+			if (newEnd <= duration && Math.abs(newStart - startTime) > 0.01) {
+				onStartChange(newStart);
+				onEndChange(newEnd);
+			}
+		}
 	}
 
 	function handleMouseDown(event: MouseEvent, handle: 'start' | 'end' | 'range') {
@@ -63,64 +103,16 @@
 	function handleMouseMove(event: MouseEvent) {
 		if (!containerElement) return;
 		event.preventDefault();
-
-		const rect = containerElement.getBoundingClientRect();
-		const percent = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-		const newTime = (percent / 100) * duration;
-
-		if (isDraggingStart) {
-			const newStart = Math.max(0, Math.min(newTime, endTime - 0.1));
-			if (Math.abs(newStart - startTime) > 0.01) {
-				onStartChange(newStart);
-				onSeek(newStart);
-			}
-		} else if (isDraggingEnd) {
-			const newEnd = Math.max(startTime + 0.1, Math.min(newTime, duration));
-			if (Math.abs(newEnd - endTime) > 0.01) {
-				onEndChange(newEnd);
-				onSeek(newEnd);
-			}
-		} else if (isDraggingRange) {
-			const rangeDuration = endTime - startTime;
-			const newStart = Math.max(0, Math.min(newTime - rangeDuration / 2, duration - rangeDuration));
-			const newEnd = newStart + rangeDuration;
-			if (newEnd <= duration && Math.abs(newStart - startTime) > 0.01) {
-				onStartChange(newStart);
-				onEndChange(newEnd);
-			}
-		}
+		const newTime = getTimeFromPosition(event.clientX);
+		handleDragUpdate(newTime);
 	}
 
 	function handleTouchMove(event: TouchEvent) {
 		if (!containerElement) return;
 		event.preventDefault();
-
 		const touch = event.touches[0];
-		const rect = containerElement.getBoundingClientRect();
-		const percent = Math.max(0, Math.min(100, ((touch.clientX - rect.left) / rect.width) * 100));
-		const newTime = (percent / 100) * duration;
-
-		if (isDraggingStart) {
-			const newStart = Math.max(0, Math.min(newTime, endTime - 0.1));
-			if (Math.abs(newStart - startTime) > 0.01) {
-				onStartChange(newStart);
-				onSeek(newStart);
-			}
-		} else if (isDraggingEnd) {
-			const newEnd = Math.max(startTime + 0.1, Math.min(newTime, duration));
-			if (Math.abs(newEnd - endTime) > 0.01) {
-				onEndChange(newEnd);
-				onSeek(newEnd);
-			}
-		} else if (isDraggingRange) {
-			const rangeDuration = endTime - startTime;
-			const newStart = Math.max(0, Math.min(newTime - rangeDuration / 2, duration - rangeDuration));
-			const newEnd = newStart + rangeDuration;
-			if (newEnd <= duration && Math.abs(newStart - startTime) > 0.01) {
-				onStartChange(newStart);
-				onEndChange(newEnd);
-			}
-		}
+		const newTime = getTimeFromPosition(touch.clientX);
+		handleDragUpdate(newTime);
 	}
 
 	function handleMouseUp() {
@@ -178,7 +170,7 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		bind:this={containerElement}
-		class="relative h-8 select-none {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
+		class="relative h-8 select-none px-5 {disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}"
 		on:click={handleClick}
 		aria-label="Video timeline"
 		aria-disabled={disabled}
