@@ -12,6 +12,7 @@
 	let loadStatus: 'checking' | 'unsupported' | 'loading' | 'loaded' | 'error' = 'checking';
 	let errorMessage = '';
 	let service: FFmpegService;
+	let loadProgress: number = 0;
 
 	// Notify parent when loading state changes
 	$: {
@@ -39,9 +40,17 @@
 
 		try {
 			loadStatus = 'loading';
+			loadProgress = 0;
 			service = new FFmpegService();
+			
+			// Set up load progress callback
+			service.onLoadProgress((progress) => {
+				loadProgress = progress;
+			});
+			
 			await service.initialize();
 			loadStatus = 'loaded';
+			loadProgress = 1;
 			sessionStorage.setItem('ffmpeg-loaded', 'true');
 			onReady(service);
 		} catch (error) {
@@ -69,12 +78,21 @@
 	{:else if loadStatus === 'loading'}
 		<div class="text-center p-4 sm:p-6 mb-4 bg-gray-700 rounded-lg border border-gray-600">
 			<div class="inline-block animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-teal-400 mb-3"></div>
-			<div class="text-gray-200 font-medium text-sm sm:text-base">Loading video processor...</div>
-			<div class="text-gray-400 text-xs sm:text-sm mt-1">
+			<div class="text-gray-200 font-medium text-sm sm:text-base mb-3">Loading video processor...</div>
+			
+			<!-- Progress Bar -->
+			<div class="w-full bg-gray-600 rounded-full h-2 mb-2">
+				<div 
+					class="bg-teal-400 h-2 rounded-full transition-all duration-300 ease-out"
+					style="width: {Math.round(loadProgress * 100)}%"
+				></div>
+			</div>
+			
+			<div class="text-gray-400 text-xs sm:text-sm">
 				{#if sessionStorage.getItem('ffmpeg-loaded') === 'true'}
-					Loading from cache...
+					Loading from cache... {Math.round(loadProgress * 100)}%
 				{:else}
-					This may take a moment (~31MB download)
+					This may take a moment (~31MB download) - {Math.round(loadProgress * 100)}%
 				{/if}
 			</div>
 		</div>

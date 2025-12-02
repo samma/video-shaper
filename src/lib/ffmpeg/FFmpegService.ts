@@ -52,6 +52,7 @@ export class FFmpegService {
 	private loadStatus: FFmpegLoadStatus = 'unloaded';
 	private loadProgress: number = 0;
 	private onProgressCallback?: (progress: FFmpegProgress) => void;
+	private onLoadProgressCallback?: (progress: number) => void;
 	private onStatusCallback?: (status: string) => void;
 	private isCancelled: boolean = false;
 	private currentStatus: string = '';
@@ -114,31 +115,45 @@ export class FFmpegService {
 				}
 			});
 
-			// Try to load from local files first (self-hosted), fallback to CDN
-			// This ensures the app works even if unpkg.com is unavailable
-			const localBaseURL = '/ffmpeg-core';
-			const cdnBaseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-			
-			let coreURL: string;
-			let wasmURL: string;
-			
-			// Check if local files exist by attempting to fetch them
-			try {
-				const localCoreResponse = await fetch(`${localBaseURL}/ffmpeg-core.js`, { method: 'HEAD' });
-				if (localCoreResponse.ok) {
-					// Local files exist, use them
-					coreURL = await toBlobURL(`${localBaseURL}/ffmpeg-core.js`, 'text/javascript');
-					wasmURL = await toBlobURL(`${localBaseURL}/ffmpeg-core.wasm`, 'application/wasm');
-					console.log('[FFmpeg] Loading from local files (self-hosted)');
-				} else {
-					throw new Error('Local files not found');
-				}
-			} catch (error) {
-				// Local files not available, fallback to CDN
-				console.warn('[FFmpeg] Local files not found, falling back to CDN');
-				coreURL = await toBlobURL(`${cdnBaseURL}/ffmpeg-core.js`, 'text/javascript');
-				wasmURL = await toBlobURL(`${cdnBaseURL}/ffmpeg-core.wasm`, 'application/wasm');
+		// Update progress helper
+		const updateProgress = (progress: number) => {
+			this.loadProgress = progress;
+			if (this.onLoadProgressCallback) {
+				this.onLoadProgressCallback(progress);
 			}
+		};
+
+		// Try to load from local files first (self-hosted), fallback to CDN
+		// This ensures the app works even if unpkg.com is unavailable
+		const localBaseURL = '/ffmpeg-core';
+		const cdnBaseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+		
+		let coreURL: string;
+		let wasmURL: string;
+		
+		// Check if local files exist by attempting to fetch them
+		try {
+			const localCoreResponse = await fetch(`${localBaseURL}/ffmpeg-core.js`, { method: 'HEAD' });
+			if (localCoreResponse.ok) {
+				// Local files exist, use them
+				console.log('[FFmpeg] Loading from local files (self-hosted)');
+				updateProgress(0.1); // Starting download
+				coreURL = await toBlobURL(`${localBaseURL}/ffmpeg-core.js`, 'text/javascript');
+				updateProgress(0.3); // Core JS loaded (~1MB)
+				wasmURL = await toBlobURL(`${localBaseURL}/ffmpeg-core.wasm`, 'application/wasm');
+				updateProgress(0.9); // WASM loaded (~30MB)
+			} else {
+				throw new Error('Local files not found');
+			}
+		} catch (error) {
+			// Local files not available, fallback to CDN
+			console.warn('[FFmpeg] Local files not found, falling back to CDN');
+			updateProgress(0.1); // Starting download
+			coreURL = await toBlobURL(`${cdnBaseURL}/ffmpeg-core.js`, 'text/javascript');
+			updateProgress(0.3); // Core JS loaded
+			wasmURL = await toBlobURL(`${cdnBaseURL}/ffmpeg-core.wasm`, 'application/wasm');
+			updateProgress(0.9); // WASM loaded
+		}
 
 			await this.ffmpeg.load({
 				coreURL,
@@ -147,6 +162,19 @@ export class FFmpegService {
 
 			this.loadStatus = 'loaded';
 			this.loadProgress = 1;
+			if (this.onLoadProgressCallback) {
+				this.onLoadProgressCallback(1);
+			}
+			
+			// Clean up object URLs (if available - not available in test environments)
+			if (typeof URL !== 'undefined' && URL.revokeObjectURL) {
+				try {
+					URL.revokeObjectURL(coreURL);
+					URL.revokeObjectURL(wasmURL);
+				} catch (e) {
+					// Ignore errors in cleanup
+				}
+			}
 		} catch (error) {
 			this.loadStatus = 'error';
 			console.error('Failed to load FFmpeg:', error);
@@ -575,6 +603,13 @@ export class FFmpegService {
 	 */
 	onProgress(callback: (progress: FFmpegProgress) => void): void {
 		this.onProgressCallback = callback;
+	}
+
+	/**
+	 * Set callback for load progress (0 to 1)
+	 */
+	onLoadProgress(callback: (progress: number) => void): void {
+		this.onLoadProgressCallback = callback;
 	}
 
 	/**
