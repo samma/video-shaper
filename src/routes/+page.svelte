@@ -394,10 +394,10 @@
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
-			Free Video Shaper - Trim, Crop, and Compress Videos Online
+			Free Video Shaper
 		</h1>
 		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
-			Trim, Crop and Compress videos for free • No Uploads • No Transfers • 100% Private
+			Trim, Crop and Compress videos for free • No Uploads • Fast on your device
 		</p>
 
 		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
@@ -509,6 +509,17 @@
 											Compression requires significant browser memory. Very large videos or high-resolution files (like 4K) can exceed browser memory limits. 
 											If compression fails, try: trimming to a shorter segment, using higher compression (move slider left), or disabling compression entirely. 
 											The app will show helpful error messages if issues occur.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Why is there a 30MB download when I select a video?</h3>
+										<p class="text-gray-400">
+											Video Shaper uses FFmpeg, a powerful video processing library, to handle all video operations (trimming, cropping, compression). 
+											FFmpeg is compiled to WebAssembly (WASM) format so it can run entirely in your browser - this is what enables 100% client-side processing with no uploads. 
+											The ~30MB download contains the FFmpeg WebAssembly binary and is only downloaded once when you first select a video. 
+											Your browser caches this file, so subsequent visits won't require re-downloading. The download only happens after you select a video, not when you first visit the page, 
+											so you can explore the site without any downloads.
 										</p>
 									</div>
 								</div>
