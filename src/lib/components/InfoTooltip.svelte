@@ -8,6 +8,7 @@
 	let tooltipElement: HTMLDivElement;
 	let buttonElement: HTMLButtonElement;
 	let isMobile = false;
+	let clickOutsideListener: ((event: MouseEvent) => void) | null = null;
 
 	onMount(() => {
 		checkMobile();
@@ -44,21 +45,35 @@
 		}
 	}
 
+	const MOBILE_BREAKPOINT = 640; // Tailwind's sm breakpoint
+	
 	function checkMobile() {
-		isMobile = window.innerWidth < 640;
+		isMobile = window.innerWidth < MOBILE_BREAKPOINT;
 	}
 
+	// Properly manage click outside listener for mobile
 	$: if (showTooltip && isMobile) {
-		// Add click outside listener for mobile
+		// Remove existing listener if any
+		if (clickOutsideListener) {
+			document.removeEventListener('click', clickOutsideListener);
+		}
+		// Add new listener
+		clickOutsideListener = handleClickOutside;
 		setTimeout(() => {
-			document.addEventListener('click', handleClickOutside);
+			document.addEventListener('click', clickOutsideListener!);
 		}, 0);
 	} else {
-		document.removeEventListener('click', handleClickOutside);
+		// Remove listener when tooltip is hidden
+		if (clickOutsideListener) {
+			document.removeEventListener('click', clickOutsideListener);
+			clickOutsideListener = null;
+		}
 	}
 
 	onDestroy(() => {
-		document.removeEventListener('click', handleClickOutside);
+		if (clickOutsideListener) {
+			document.removeEventListener('click', clickOutsideListener);
+		}
 	});
 </script>
 

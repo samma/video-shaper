@@ -8,6 +8,7 @@
 	import CompressionControls from '$lib/components/CompressionControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
+	import type { TrimOptions } from '$lib/ffmpeg/types';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
 
 	let title = 'Free Video Shaper';
@@ -22,7 +23,7 @@
 	let videoDuration: number = 0;
 	let startTime: number = 0;
 	let endTime: number = 0;
-	let videoPreviewComponent: any = null;
+	let videoPreviewComponent: { seekTo: (time: number) => void } | null = null;
 
 	// Trim state
 	let trimEnabled: boolean = true; // Enabled by default
@@ -100,11 +101,14 @@
 	function handleFFmpegReady(service: FFmpegService) {
 		ffmpegService = service;
 		console.log('FFmpeg is ready!');
-		// Resolve the promise if it exists
+		// Resolve the promise if it exists, or create one if it doesn't
 		if (ffmpegLoadResolve) {
 			ffmpegLoadResolve(service);
 			ffmpegLoadResolve = null;
 			ffmpegLoadPromise = null;
+		} else if (!ffmpegLoadPromise) {
+			// FFmpeg loaded before promise was created, create resolved promise
+			ffmpegLoadPromise = Promise.resolve(service);
 		}
 	}
 
@@ -125,9 +129,12 @@
 		ffmpegService = null;
 		ffmpegError = '';
 		// Create a promise that will resolve when FFmpeg is ready
-		ffmpegLoadPromise = new Promise((resolve) => {
-			ffmpegLoadResolve = resolve;
-		});
+		// Only create if one doesn't already exist (prevents overwriting if FFmpeg loads quickly)
+		if (!ffmpegLoadPromise) {
+			ffmpegLoadPromise = new Promise((resolve) => {
+				ffmpegLoadResolve = resolve;
+			});
+		}
 		// Reset trim times
 		startTime = 0;
 		endTime = 0;
@@ -332,13 +339,14 @@
 		}
 
 		// Initial delay handling - show status if progress stays at 0% for >2 seconds
+		const STATUS_DELAY_MS = 2000;
 		initialDelayTimeout = setTimeout(() => {
 			if (processingProgress === 0 && processing) {
 				if (!processingStatus || processingStatus === '') {
 					processingStatus = 'Analyzing video...';
 				}
 			}
-		}, 2000);
+		}, STATUS_DELAY_MS);
 
 		try {
 			// Set up status callback
@@ -373,7 +381,7 @@
 			});
 
 			// Build trim options with optional crop
-			const trimOptions: any = {
+			const trimOptions: TrimOptions = {
 				startTime: trimEnabled ? startTime : 0,
 				duration: trimEnabled ? (endTime - startTime) : videoDuration,
 				compressionEnabled,
@@ -410,7 +418,10 @@
 			document.body.appendChild(a);
 			a.click();
 			document.body.removeChild(a);
-			URL.revokeObjectURL(downloadUrl);
+			// Delay revoking URL to ensure download starts
+			setTimeout(() => {
+				URL.revokeObjectURL(downloadUrl);
+			}, 100);
 
 			// Set final progress
 			processingProgress = 1;
