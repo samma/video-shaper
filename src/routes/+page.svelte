@@ -391,7 +391,7 @@
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
-			{title}
+			Free Video Shaper - Trim, Crop, and Compress Videos Online
 		</h1>
 		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
 			Trim, Crop and Compress videos for free • No Uploads • No Transfers • 100% Private
