@@ -395,11 +395,18 @@
 			// Trim the video
 			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, trimOptions);
 
+			// Generate unique filename with timestamp
+			const originalName = selectedFile.name;
+			const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
+			const extension = originalName.match(/\.[^/.]+$/) || ['.mp4'];
+			const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Format: 2024-12-02T22-45-30
+			const downloadFilename = `${nameWithoutExt}-${timestamp}${extension[0]}`;
+
 			// Download the result
 			const downloadUrl = URL.createObjectURL(trimmedBlob);
 			const a = document.createElement('a');
 			a.href = downloadUrl;
-			a.download = `trimmed-${selectedFile.name}`;
+			a.download = downloadFilename;
 			document.body.appendChild(a);
 			a.click();
 			document.body.removeChild(a);
