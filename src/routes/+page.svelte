@@ -527,7 +527,9 @@
 										<p class="text-gray-400">
 											Video Shaper uses FFmpeg, a powerful video processing library, to handle all video operations (trimming, cropping, compression). 
 											FFmpeg is compiled to WebAssembly (WASM) format so it can run entirely in your browser - this is what enables 100% client-side processing with no uploads. 
-											The ~30MB download contains the FFmpeg WebAssembly binary and is only downloaded once when you first select a video. 
+											The ~30MB download contains the FFmpeg WebAssembly binary and starts automatically when you select a video. 
+											The download happens silently in the background, so you can start editing immediately while it loads. 
+											If you click "Process Video" before the download completes, the app will wait for it to finish. 
 											Your browser caches this file, so subsequent visits won't require re-downloading. The download only happens after you select a video, not when you first visit the page, 
 											so you can explore the site without any downloads.
 										</p>
@@ -632,8 +634,8 @@
 						{/if}
 					</div>
 			{:else}
-				<!-- Only load FFmpeg AFTER a file is selected -->
-				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange}>
+				<!-- Load FFmpeg silently in background when file is selected -->
+				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange} silent={true}>
 					{#if ffmpegService}
 						<!-- FFmpeg loaded - show full editor -->
 						<div class="space-y-4 sm:space-y-6">
