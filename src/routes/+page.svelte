@@ -14,6 +14,8 @@
 	let ffmpegService: FFmpegService | null = null;
 	let ffmpegError = '';
 	let ffmpegLoading = false;
+	let ffmpegLoadPromise: Promise<FFmpegService> | null = null;
+	let ffmpegLoadResolve: ((service: FFmpegService) => void) | null = null;
 
 	// Video state
 	let selectedFile: File | null = null;
@@ -98,6 +100,12 @@
 	function handleFFmpegReady(service: FFmpegService) {
 		ffmpegService = service;
 		console.log('FFmpeg is ready!');
+		// Resolve the promise if it exists
+		if (ffmpegLoadResolve) {
+			ffmpegLoadResolve(service);
+			ffmpegLoadResolve = null;
+			ffmpegLoadPromise = null;
+		}
 	}
 
 	function handleFFmpegError(error: Error) {
@@ -116,6 +124,10 @@
 		// Reset FFmpeg service - it will be recreated when FFmpegLoader mounts
 		ffmpegService = null;
 		ffmpegError = '';
+		// Create a promise that will resolve when FFmpeg is ready
+		ffmpegLoadPromise = new Promise((resolve) => {
+			ffmpegLoadResolve = resolve;
+		});
 		// Reset trim times
 		startTime = 0;
 		endTime = 0;
@@ -141,6 +153,8 @@
 		selectedFile = null;
 		ffmpegService = null;
 		ffmpegError = '';
+		ffmpegLoadPromise = null;
+		ffmpegLoadResolve = null;
 	}
 
 	onMount(() => {
@@ -258,7 +272,40 @@
 	}
 
 	async function handleProcess() {
-		if (!ffmpegService || !selectedFile) return;
+		if (!selectedFile) return;
+
+		// Clear any previous errors and start processing
+		processingError = '';
+		processing = true;
+		processingProgress = 0;
+		processingStatus = '';
+
+		// If FFmpeg is not ready yet, wait for it
+		if (!ffmpegService) {
+			if (ffmpegLoading && ffmpegLoadPromise) {
+				// FFmpeg is loading, wait for it
+				processingStatus = 'Loading video processor...';
+				try {
+					// Wait for FFmpeg to be ready
+					await ffmpegLoadPromise;
+					// Service should be set by handleFFmpegReady
+					if (!ffmpegService) {
+						processingError = 'Failed to load video processor';
+						processing = false;
+						return;
+					}
+				} catch (error) {
+					processingError = 'Failed to load video processor';
+					processing = false;
+					return;
+				}
+			} else {
+				// FFmpeg hasn't started loading yet
+				processingError = 'Video processor not available';
+				processing = false;
+				return;
+			}
+		}
 
 		// Check for warnings about large files with compression
 		processingWarning = '';
@@ -278,12 +325,6 @@
 				// Continue processing - warning is informational only
 			}
 		}
-
-		// Clear any previous errors and proceed
-		processingError = '';
-		processing = true;
-		processingProgress = 0;
-		processingStatus = '';
 
 		// Clean up any existing timeouts
 		if (initialDelayTimeout !== null) {
@@ -635,10 +676,10 @@
 					</div>
 			{:else}
 				<!-- Load FFmpeg silently in background when file is selected -->
-				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange} silent={true}>
-					{#if ffmpegService}
-						<!-- FFmpeg loaded - show full editor -->
-						<div class="space-y-4 sm:space-y-6">
+				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange} silent={true} />
+
+				<!-- Show editor immediately when file is selected -->
+				<div class="space-y-4 sm:space-y-6">
 							<VideoPreview
 								bind:this={videoPreviewComponent}
 								videoFile={selectedFile}
@@ -734,7 +775,7 @@
 								{processing}
 								progress={processingProgress}
 								status={processingStatus}
-								disabled={!ffmpegService || videoDuration === 0}
+								disabled={videoDuration === 0}
 							/>
 
 							{#if processingError}
@@ -761,16 +802,11 @@
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 										</svg>
-										<span>Change Video</span>
+										<span>Edit another video</span>
 									</button>
 								</div>
 							</div>
 						</div>
-					{:else}
-						<!-- FFmpegLoader will show its own loading state with progress bar -->
-						<!-- This empty div ensures the slot content is shown -->
-					{/if}
-				</FFmpegLoader>
 
 				{#if ffmpegError}
 					<div class="mt-4 bg-red-900/50 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
