@@ -410,7 +410,10 @@
 			document.body.appendChild(a);
 			a.click();
 			document.body.removeChild(a);
-			URL.revokeObjectURL(downloadUrl);
+			// Delay revoking URL to ensure download starts
+			setTimeout(() => {
+				URL.revokeObjectURL(downloadUrl);
+			}, 100);
 
 			// Set final progress
 			processingProgress = 1;
