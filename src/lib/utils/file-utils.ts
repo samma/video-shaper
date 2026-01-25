@@ -30,7 +30,9 @@ export function formatFileSizeMB(bytes: number): string {
  * @param originalHeight Original video height in pixels
  * @param cropWidth Cropped video width in pixels
  * @param cropHeight Cropped video height in pixels
- * @param outputFormat Output format (e.g., 'mp4', 'webm', 'mov', 'avi', 'mkv', 'flv')
+ * @param outputFormat Output format (e.g., 'mp4', 'mov', 'avi', 'mkv', 'flv')
+ * @param scaleWidth Scaled output width in pixels
+ * @param scaleHeight Scaled output height in pixels
  * @returns Estimated file size in bytes
  */
 export function estimateOutputFileSize(
@@ -43,12 +45,18 @@ export function estimateOutputFileSize(
 	originalHeight?: number,
 	cropWidth?: number,
 	cropHeight?: number,
-	outputFormat?: string
+	outputFormat?: string,
+	scaleWidth?: number,
+	scaleHeight?: number
 ): number {
 	if (originalDuration === 0) return 0;
 
 	// Base estimate: proportional to duration
 	let estimatedSize = (originalSizeBytes * trimmedDuration) / originalDuration;
+
+	// Determine the effective dimensions (after crop, before scale)
+	let effectiveWidth = originalWidth || 0;
+	let effectiveHeight = originalHeight || 0;
 
 	// Account for cropping (reduced pixel count = smaller file)
 	if (
@@ -61,10 +69,27 @@ export function estimateOutputFileSize(
 		originalWidth > 0 &&
 		originalHeight > 0
 	) {
+		effectiveWidth = cropWidth;
+		effectiveHeight = cropHeight;
 		const originalArea = originalWidth * originalHeight;
 		const croppedArea = cropWidth * cropHeight;
 		const areaRatio = croppedArea / originalArea;
 		estimatedSize = estimatedSize * areaRatio;
+	}
+
+	// Account for resolution scaling (reduced pixel count = smaller file)
+	if (
+		scaleWidth &&
+		scaleHeight &&
+		scaleWidth > 0 &&
+		scaleHeight > 0 &&
+		effectiveWidth > 0 &&
+		effectiveHeight > 0
+	) {
+		const scaledArea = scaleWidth * scaleHeight;
+		const effectiveArea = effectiveWidth * effectiveHeight;
+		const scaleRatio = scaledArea / effectiveArea;
+		estimatedSize = estimatedSize * scaleRatio;
 	}
 
 	if (compressionEnabled) {

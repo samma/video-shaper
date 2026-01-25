@@ -314,14 +314,41 @@ export class FFmpegService {
 				videoFilters.push(`crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`);
 			}
 
+			// Add scale filter if scale options are provided
+			if (options.scale && (options.scale.width || options.scale.height)) {
+				let scaleWidth = options.scale.width;
+				let scaleHeight = options.scale.height;
+
+				// If only one dimension provided, calculate other from aspect ratio
+				// First, we need to know the input dimensions after crop (if any)
+				// For now, we'll use the provided dimensions and let FFmpeg handle aspect ratio
+				// by using -1 for the missing dimension
+				if (scaleWidth && !scaleHeight) {
+					// Width specified, height will be calculated by FFmpeg to maintain aspect ratio
+					// Ensure width is even
+					scaleWidth = Math.floor(scaleWidth / 2) * 2;
+					videoFilters.push(`scale=${scaleWidth}:-2`); // -2 ensures even height
+				} else if (scaleHeight && !scaleWidth) {
+					// Height specified, width will be calculated by FFmpeg to maintain aspect ratio
+					// Ensure height is even
+					scaleHeight = Math.floor(scaleHeight / 2) * 2;
+					videoFilters.push(`scale=-2:${scaleHeight}`); // -2 ensures even width
+				} else if (scaleWidth && scaleHeight) {
+					// Both dimensions provided, ensure both are even
+					scaleWidth = Math.floor(scaleWidth / 2) * 2;
+					scaleHeight = Math.floor(scaleHeight / 2) * 2;
+					videoFilters.push(`scale=${scaleWidth}:${scaleHeight}`);
+				}
+			}
+
 			// Apply video filters if any
 			if (videoFilters.length > 0) {
 				command.push('-vf', videoFilters.join(','));
 			}
 
 			// Determine if we need to re-encode
-			// Re-encoding is required if: compression enabled, crop enabled, or format conversion needed
-			const needsReencoding = options.compressionEnabled || options.crop || needsFormatConversion;
+			// Re-encoding is required if: compression enabled, crop enabled, scale enabled, or format conversion needed
+			const needsReencoding = options.compressionEnabled || options.crop || options.scale || needsFormatConversion;
 
 			if (needsReencoding) {
 				// Get format-specific codecs
@@ -406,6 +433,9 @@ export class FFmpegService {
 			}
 			if (options.crop) {
 				debugLog('Crop:', `x=${options.crop.x}, y=${options.crop.y}, w=${options.crop.width}, h=${options.crop.height}`);
+			}
+			if (options.scale) {
+				debugLog('Scale:', `w=${options.scale.width || 'auto'}, h=${options.scale.height || 'auto'}`);
 			}
 			
 			// Log memory info if available

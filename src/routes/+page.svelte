@@ -7,6 +7,7 @@
 	import CropControls from '$lib/components/CropControls.svelte';
 	import CompressionControls from '$lib/components/CompressionControls.svelte';
 	import FormatControls from '$lib/components/FormatControls.svelte';
+	import ResolutionControls from '$lib/components/ResolutionControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
@@ -47,6 +48,11 @@
 	let outputFormat: string = 'mp4';
 	let inputFormat: string = 'mp4';
 
+	// Resolution scaling state
+	let resolutionScalingEnabled: boolean = false;
+	let resolutionScale: number = 100; // Percentage (100 = original)
+	let targetResolution: string | null = null; // Preset name or null for custom
+
 	// Processing state
 	let processing: boolean = false;
 	let processingProgress: number = 0;
@@ -74,6 +80,66 @@
 		return formatMap[extension] || 'mp4'; // default to mp4
 	}
 
+	// Ensure dimension is even (required for H.264)
+	function makeEven(value: number): number {
+		return Math.floor(value / 2) * 2;
+	}
+
+	// Calculate scaled dimensions maintaining aspect ratio
+	function calculateScaledDimensions(
+		width: number,
+		height: number,
+		scalePercent: number,
+		preset: string | null
+	): { width: number; height: number } {
+		if (width === 0 || height === 0) return { width: 0, height: 0 };
+
+		const RESOLUTION_PRESETS = [
+			{ label: '4K', value: '4k', width: 3840, height: 2160 },
+			{ label: '1080p', value: '1080p', width: 1920, height: 1080 },
+			{ label: '720p', value: '720p', width: 1280, height: 720 },
+			{ label: '480p', value: '480p', width: 854, height: 480 },
+			{ label: '360p', value: '360p', width: 640, height: 360 },
+			{ label: '240p', value: '240p', width: 426, height: 240 }
+		];
+
+		const aspectRatio = width / height;
+		let targetWidth: number;
+		let targetHeight: number;
+
+		if (preset) {
+			// Use preset dimensions
+			const presetData = RESOLUTION_PRESETS.find(p => p.value === preset);
+			if (presetData) {
+				// Fit to preset while maintaining aspect ratio
+				const widthRatio = presetData.width / width;
+				const heightRatio = presetData.height / height;
+				const scaleRatio = Math.min(widthRatio, heightRatio);
+
+				targetWidth = width * scaleRatio;
+				targetHeight = height * scaleRatio;
+			} else {
+				// Fallback to percentage
+				targetWidth = width * (scalePercent / 100);
+				targetHeight = height * (scalePercent / 100);
+			}
+		} else {
+			// Use percentage
+			targetWidth = width * (scalePercent / 100);
+			targetHeight = height * (scalePercent / 100);
+		}
+
+		// Ensure both dimensions are even
+		targetWidth = makeEven(targetWidth);
+		targetHeight = makeEven(targetHeight);
+
+		// Ensure minimum size
+		if (targetWidth < 2) targetWidth = 2;
+		if (targetHeight < 2) targetHeight = 2;
+
+		return { width: targetWidth, height: targetHeight };
+	}
+
 	async function handleCancel() {
 		// Clean up timeouts
 		if (initialDelayTimeout !== null) {
@@ -96,6 +162,15 @@
 	}
 
 	// Computed: estimated output file size
+	// Use cropped dimensions if crop is enabled, otherwise use original dimensions
+	// Round to integers since pixels are whole numbers
+	$: effectiveWidth = Math.round(cropEnabled && cropWidth > 0 ? cropWidth : videoWidth);
+	$: effectiveHeight = Math.round(cropEnabled && cropHeight > 0 ? cropHeight : videoHeight);
+	
+	$: scaledDims = resolutionScalingEnabled && effectiveWidth > 0 && effectiveHeight > 0
+		? calculateScaledDimensions(effectiveWidth, effectiveHeight, resolutionScale, targetResolution)
+		: { width: effectiveWidth, height: effectiveHeight };
+
 	$: estimatedSize = selectedFile && videoDuration > 0
 		? estimateOutputFileSize(
 			selectedFile.size,
@@ -107,7 +182,9 @@
 			videoHeight,
 			cropEnabled && cropWidth > 0 ? cropWidth : undefined,
 			cropEnabled && cropHeight > 0 ? cropHeight : undefined,
-			formatConversionEnabled && outputFormat !== inputFormat ? outputFormat : undefined
+			formatConversionEnabled && outputFormat !== inputFormat ? outputFormat : undefined,
+			resolutionScalingEnabled && scaledDims.width > 0 ? scaledDims.width : undefined,
+			resolutionScalingEnabled && scaledDims.height > 0 ? scaledDims.height : undefined
 		)
 		: 0;
 
@@ -172,6 +249,10 @@
 		videoHeight = 0;
 		// Reset format conversion
 		formatConversionEnabled = false;
+		// Reset resolution scaling
+		resolutionScalingEnabled = false;
+		resolutionScale = 100;
+		targetResolution = null;
 	}
 
 	function goBack() {
@@ -422,6 +503,29 @@
 				trimOptions.outputFormat = outputFormat;
 			}
 
+			// Add resolution scaling if enabled
+			// Use cropped dimensions if crop is enabled, otherwise use original dimensions
+			const effectiveWidth = cropEnabled && cropWidth > 0 ? cropWidth : videoWidth;
+			const effectiveHeight = cropEnabled && cropHeight > 0 ? cropHeight : videoHeight;
+			
+			if (resolutionScalingEnabled && effectiveWidth > 0 && effectiveHeight > 0) {
+				const scaledDims = calculateScaledDimensions(
+					effectiveWidth,
+					effectiveHeight,
+					resolutionScale,
+					targetResolution
+				);
+				
+				// Only add scale if dimensions are different from effective (cropped or original) dimensions
+				if (scaledDims.width !== effectiveWidth || scaledDims.height !== effectiveHeight) {
+					trimOptions.scale = {
+						width: scaledDims.width,
+						height: scaledDims.height,
+						maintainAspectRatio: true
+					};
+				}
+			}
+
 			// Trim the video
 			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, trimOptions);
 
@@ -501,7 +605,7 @@
 						<div class="space-y-3 text-sm sm:text-base text-gray-300">
 							<p>
 								<strong class="text-teal-400">Video Shaper</strong> is a completely <strong class="text-teal-400">free</strong> video editor that runs entirely in your browser. 
-								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, <strong class="text-teal-400">compress</strong>, and <strong class="text-teal-400">convert</strong> videos with complete privacy—all processing happens on your device, and videos never leave your computer.
+								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, <strong class="text-teal-400">compress</strong>, <strong class="text-teal-400">convert</strong>, and <strong class="text-teal-400">resize</strong> videos with complete privacy—all processing happens on your device, and videos never leave your computer.
 							</p>
 							
 							<div>
@@ -511,6 +615,7 @@
 									<li>Crop videos to adjust frame and aspect ratio</li>
 									<li>Compress videos to reduce file size</li>
 									<li>Convert videos between formats (MP4, MOV, AVI, MKV, FLV)</li>
+									<li>Reduce video resolution to decrease file size</li>
 									<li>Real-time preview of trim selection</li>
 									<li>No uploads required - 100% client-side processing</li>
 								</ul>
@@ -545,7 +650,7 @@
 										<p class="text-gray-400">
 											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
 											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
-											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
+											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, <strong class="text-teal-400">resolution scaling</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
 											The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
 											No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
 										</p>
@@ -566,6 +671,16 @@
 											Yes! Video Shaper includes a format conversion feature that allows you to convert videos between different formats. 
 											You can convert to MP4, MOV, AVI, MKV, or FLV formats. Format conversion requires re-encoding the video, 
 											which may take longer than preserving the original format, but it's useful when you need a specific format for compatibility.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Can I reduce video resolution to save space?</h3>
+										<p class="text-gray-400">
+											Yes! Video Shaper includes a resolution scaling feature that allows you to reduce (or increase) video resolution while maintaining the aspect ratio. 
+											Reducing resolution significantly decreases file size - for example, reducing to 50% resolution (half width and height) results in approximately 25% of the original file size. 
+											You can use the percentage slider for custom scaling or select from preset resolutions like 1080p, 720p, 480p, etc. 
+											This is especially useful for creating smaller files for sharing or storage while maintaining acceptable quality.
 										</p>
 									</div>
 
@@ -789,6 +904,24 @@
 								}}
 								onOutputFormatChange={(format) => {
 									outputFormat = format;
+								}}
+							/>
+
+							<ResolutionControls
+								bind:resolutionScalingEnabled
+								bind:resolutionScale
+								bind:targetResolution
+								originalWidth={cropEnabled && cropWidth > 0 ? cropWidth : videoWidth}
+								originalHeight={cropEnabled && cropHeight > 0 ? cropHeight : videoHeight}
+								disabled={processing}
+								onResolutionScalingToggle={(enabled) => {
+									resolutionScalingEnabled = enabled;
+								}}
+								onResolutionScaleChange={(scale) => {
+									resolutionScale = scale;
+								}}
+								onTargetResolutionChange={(preset) => {
+									targetResolution = preset;
 								}}
 							/>
 

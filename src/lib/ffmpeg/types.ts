@@ -20,6 +20,11 @@ export interface TrimOptions {
 	crf?: number; // Constant Rate Factor (18-28, lower = higher quality)
 	crop?: CropOptions; // optional crop settings
 	outputFormat?: string; // output format (e.g., 'mp4', 'mov', 'avi', 'mkv', 'flv')
+	scale?: {
+		width?: number; // target width (height calculated from aspect ratio)
+		height?: number; // target height (width calculated from aspect ratio)
+		maintainAspectRatio: boolean; // always true for this feature
+	};
 }
 
 export interface FFmpegError {

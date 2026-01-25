@@ -10,6 +10,7 @@ A client-side video editor that runs entirely in your browser. Trim, crop, and c
 - **Crop Videos** - Adjust frame dimensions and aspect ratio with visual crop controls
 - **Compress Videos** - Reduce file size with adjustable quality settings
 - **Convert Formats** - Convert videos between MP4, MOV, AVI, MKV, and FLV formats
+- **Scale Resolution** - Reduce or increase video resolution while maintaining aspect ratio
 - **Simple Interface** - Easy-to-use controls with video preview
 - **Privacy-First** - No uploads, no transfers, complete privacy
 
