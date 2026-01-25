@@ -1,6 +1,6 @@
 # Video Shaper
 
-A client-side video editor that runs entirely in your browser. Trim, crop, and compress videos without uploading them to any server.
+A client-side video editor that runs entirely in your browser. Trim, crop, compress, convert formats, and scale resolution - all without uploading videos to any server.
 
 ## Features
 
