@@ -47,6 +47,49 @@ function parseStatusFromLog(message: string): string | null {
 	return null;
 }
 
+/**
+ * Detect video format from file extension
+ */
+function getFileFormat(file: File): string {
+	const extension = file.name.match(/\.[^/.]+$/)?.[0]?.toLowerCase() || '';
+	const formatMap: Record<string, string> = {
+		'.mp4': 'mp4',
+		'.mov': 'mov',
+		'.avi': 'avi',
+		'.mkv': 'mkv',
+		'.flv': 'flv'
+	};
+	return formatMap[extension] || 'mp4'; // default to mp4
+}
+
+/**
+ * Get MIME type for a video format
+ */
+function getFormatMimeType(format: string): string {
+	const mimeMap: Record<string, string> = {
+		'mp4': 'video/mp4',
+		'mov': 'video/quicktime',
+		'avi': 'video/x-msvideo',
+		'mkv': 'video/x-matroska',
+		'flv': 'video/x-flv'
+	};
+	return mimeMap[format] || 'video/mp4';
+}
+
+/**
+ * Get format-specific codec settings for FFmpeg
+ */
+function getFormatCodecs(format: string): { videoCodec: string; audioCodec: string } {
+	const codecMap: Record<string, { videoCodec: string; audioCodec: string }> = {
+		'mp4': { videoCodec: 'libx264', audioCodec: 'aac' },
+		'mov': { videoCodec: 'libx264', audioCodec: 'aac' },
+		'avi': { videoCodec: 'libx264', audioCodec: 'mp3' },
+		'mkv': { videoCodec: 'libx264', audioCodec: 'copy' },
+		'flv': { videoCodec: 'libx264', audioCodec: 'mp3' }
+	};
+	return codecMap[format] || { videoCodec: 'libx264', audioCodec: 'aac' };
+}
+
 export class FFmpegService {
 	private ffmpeg: FFmpeg;
 	private loadStatus: FFmpegLoadStatus = 'unloaded';
@@ -196,8 +239,14 @@ export class FFmpegService {
 		this.isCancelled = false;
 		this.currentStatus = '';
 
-		const inputName = 'input.mp4';
-		const outputName = 'output.mp4';
+		// Detect input format and determine output format
+		const inputFormat = getFileFormat(file);
+		const outputFormat = options.outputFormat || inputFormat;
+		const needsFormatConversion = outputFormat !== inputFormat;
+
+		// Set input/output filenames based on formats
+		const inputName = `input.${inputFormat}`;
+		const outputName = `output.${outputFormat}`;
 		let command: string[] = [];
 
 		try {
@@ -270,69 +319,76 @@ export class FFmpegService {
 				command.push('-vf', videoFilters.join(','));
 			}
 
-			if (options.compressionEnabled && options.crf !== undefined) {
-				// Validate CRF value
-				const crfValue = Math.max(18, Math.min(28, options.crf));
+			// Determine if we need to re-encode
+			// Re-encoding is required if: compression enabled, crop enabled, or format conversion needed
+			const needsReencoding = options.compressionEnabled || options.crop || needsFormatConversion;
+
+			if (needsReencoding) {
+				// Get format-specific codecs
+				const codecs = getFormatCodecs(outputFormat);
 				
-				// Decide if we can use faststart
-				// faststart requires a second pass that reads the entire file into memory
-				// For large files or long segments, this can cause memory issues
-				const inputFileMB = file.size / (1024 * 1024);
-				const trimmedDuration = options.duration;
-				// Skip faststart if: input > 50MB OR trimmed segment > 10 seconds
-				// This avoids the second-pass memory issue for larger compressions
-				const useFaststart = inputFileMB < 50 && trimmedDuration <= 10;
-				
-				// Apply compression with CRF - optimized for memory efficiency
-				// -c:v libx264: use H.264 codec
-				// -crf: Constant Rate Factor (18-28, lower = higher quality)
-				// -preset ultrafast: fastest encoding (lowest memory usage)
-				// -tune fastdecode: optimize for faster decoding (lower memory)
-				// -threads 1: single thread (less memory overhead)
-				// -c:a copy: copy audio without re-encoding
-				// -movflags +faststart: optimize for web playback (only for smaller files)
-				// Note: Removed -profile:v and -level restrictions to support high-resolution videos
-				// FFmpeg will auto-detect appropriate profile/level based on input
-				command.push(
-					'-c:v',
-					'libx264',
-					'-crf',
-					crfValue.toString(),
-					'-preset',
-					'ultrafast',
-					'-tune',
-					'fastdecode',
-					'-threads',
-					'1',
-					'-c:a',
-					'copy'
-				);
-				
-				// Only add faststart for smaller files to avoid second-pass memory issues
-				if (useFaststart) {
-					command.push('-movflags', '+faststart');
-				} else {
-					debugLog(`Skipping faststart to avoid memory issues (input: ${inputFileMB.toFixed(1)}MB, duration: ${trimmedDuration.toFixed(1)}s)`);
-				}
-			} else {
-				// Copy codec (fast, no re-encoding)
-				// BUT: if crop is enabled, we must re-encode, so use libx264 instead
-				if (options.crop) {
-					// Crop requires re-encoding, so use a fast preset
+				if (options.compressionEnabled && options.crf !== undefined) {
+					// Validate CRF value
+					const crfValue = Math.max(18, Math.min(28, options.crf));
+					
+					// Decide if we can use faststart (only for MP4)
+					// faststart requires a second pass that reads the entire file into memory
+					// For large files or long segments, this can cause memory issues
+					const inputFileMB = file.size / (1024 * 1024);
+					const trimmedDuration = options.duration;
+					// Skip faststart if: input > 50MB OR trimmed segment > 10 seconds OR not MP4
+					// This avoids the second-pass memory issue for larger compressions
+					const useFaststart = outputFormat === 'mp4' && inputFileMB < 50 && trimmedDuration <= 10;
+					
+					// H.264 encoding parameters (all supported formats use H.264)
+					// -c:v libx264: use H.264 codec
+					// -crf: Constant Rate Factor (18-28, lower = higher quality)
+					// -preset ultrafast: fastest encoding (lowest memory usage)
+					// -tune fastdecode: optimize for faster decoding (lower memory)
+					// -threads 1: single thread (less memory overhead)
+					// -c:a: use format-specific audio codec
+					// -movflags +faststart: optimize for web playback (only for MP4 and smaller files)
 					command.push(
 						'-c:v',
-						'libx264',
+						codecs.videoCodec,
+						'-crf',
+						crfValue.toString(),
+						'-preset',
+						'ultrafast',
+						'-tune',
+						'fastdecode',
+						'-threads',
+						'1',
+						'-c:a',
+						codecs.audioCodec
+					);
+					
+					// Only add faststart for MP4 and smaller files to avoid second-pass memory issues
+					if (useFaststart) {
+						command.push('-movflags', '+faststart');
+					} else if (outputFormat === 'mp4') {
+						debugLog(`Skipping faststart to avoid memory issues (input: ${inputFileMB.toFixed(1)}MB, duration: ${trimmedDuration.toFixed(1)}s)`);
+					}
+				} else {
+					// Re-encoding needed but compression not enabled
+					// Use format-specific codecs with default quality
+					command.push(
+						'-c:v',
+						codecs.videoCodec,
 						'-preset',
 						'ultrafast',
 						'-crf',
 						'23', // Default quality when compression not explicitly enabled
+						'-threads',
+						'1',
 						'-c:a',
-						'copy'
+						codecs.audioCodec
 					);
-				} else {
-					// No crop, can use codec copy (fastest)
-					command.push('-c', 'copy');
 				}
+			} else {
+				// No re-encoding needed - can use codec copy (fastest)
+				// Only works if input and output formats are the same
+				command.push('-c', 'copy');
 			}
 
 			// Add -y flag to overwrite output file if it exists
@@ -340,6 +396,9 @@ export class FFmpegService {
 
 			console.log('[FFmpeg] Executing command:', command.join(' '));
 			debugLog('Input file size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+			debugLog('Input format:', inputFormat);
+			debugLog('Output format:', outputFormat);
+			debugLog('Format conversion:', needsFormatConversion);
 			debugLog('Trim duration:', options.duration.toFixed(2), 'seconds');
 			debugLog('Compression enabled:', options.compressionEnabled);
 			if (options.compressionEnabled) {
@@ -475,7 +534,8 @@ export class FFmpegService {
 			// Create a new Uint8Array to ensure compatibility with Blob constructor
 			// This works around FFmpeg's ArrayBufferLike type incompatibility
 			const blobData = new Uint8Array(data);
-			return new Blob([blobData], { type: 'video/mp4' });
+			const mimeType = getFormatMimeType(outputFormat);
+			return new Blob([blobData], { type: mimeType });
 		} catch (error) {
 			// Enhanced error logging (only in debug mode)
 			if (DEBUG_ENABLED) {

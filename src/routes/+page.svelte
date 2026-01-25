@@ -6,6 +6,7 @@
 	import TrimControls from '$lib/components/TrimControls.svelte';
 	import CropControls from '$lib/components/CropControls.svelte';
 	import CompressionControls from '$lib/components/CompressionControls.svelte';
+	import FormatControls from '$lib/components/FormatControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
@@ -41,6 +42,11 @@
 	let videoWidth: number = 0;
 	let videoHeight: number = 0;
 
+	// Format conversion state
+	let formatConversionEnabled: boolean = false;
+	let outputFormat: string = 'mp4';
+	let inputFormat: string = 'mp4';
+
 	// Processing state
 	let processing: boolean = false;
 	let processingProgress: number = 0;
@@ -54,6 +60,19 @@
 	// Accordion state
 	let limitationsExpanded: boolean = false;
 	let disclaimerExpanded: boolean = false;
+
+	// Format detection helper
+	function getFileFormat(file: File): string {
+		const extension = file.name.match(/\.[^/.]+$/)?.[0]?.toLowerCase() || '';
+		const formatMap: Record<string, string> = {
+			'.mp4': 'mp4',
+			'.mov': 'mov',
+			'.avi': 'avi',
+			'.mkv': 'mkv',
+			'.flv': 'flv'
+		};
+		return formatMap[extension] || 'mp4'; // default to mp4
+	}
 
 	async function handleCancel() {
 		// Clean up timeouts
@@ -87,7 +106,8 @@
 			videoWidth,
 			videoHeight,
 			cropEnabled && cropWidth > 0 ? cropWidth : undefined,
-			cropEnabled && cropHeight > 0 ? cropHeight : undefined
+			cropEnabled && cropHeight > 0 ? cropHeight : undefined,
+			formatConversionEnabled && outputFormat !== inputFormat ? outputFormat : undefined
 		)
 		: 0;
 
@@ -128,6 +148,9 @@
 		ffmpegLoadPromise = new Promise((resolve) => {
 			ffmpegLoadResolve = resolve;
 		});
+		// Detect and set input format
+		inputFormat = getFileFormat(file);
+		outputFormat = inputFormat; // Default to same format
 		// Reset trim times
 		startTime = 0;
 		endTime = 0;
@@ -147,6 +170,8 @@
 		aspectRatioLocked = false;
 		videoWidth = 0;
 		videoHeight = 0;
+		// Reset format conversion
+		formatConversionEnabled = false;
 	}
 
 	function goBack() {
@@ -372,7 +397,7 @@
 				}
 			});
 
-			// Build trim options with optional crop
+			// Build trim options with optional crop and format conversion
 			const trimOptions: any = {
 				startTime: trimEnabled ? startTime : 0,
 				duration: trimEnabled ? (endTime - startTime) : videoDuration,
@@ -392,15 +417,23 @@
 				};
 			}
 
+			// Add format conversion if enabled and different from input
+			if (formatConversionEnabled && outputFormat !== inputFormat) {
+				trimOptions.outputFormat = outputFormat;
+			}
+
 			// Trim the video
 			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, trimOptions);
 
 			// Generate unique filename with timestamp
 			const originalName = selectedFile.name;
 			const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
-			const extension = originalName.match(/\.[^/.]+$/) || ['.mp4'];
+			// Use output format extension if format conversion is enabled, otherwise use original extension
+			const outputExt = formatConversionEnabled && outputFormat !== inputFormat 
+				? `.${outputFormat}` 
+				: (originalName.match(/\.[^/.]+$/) || ['.mp4'])[0];
 			const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Format: 2024-12-02T22-45-30
-			const downloadFilename = `${nameWithoutExt}-${timestamp}${extension[0]}`;
+			const downloadFilename = `${nameWithoutExt}-${timestamp}${outputExt}`;
 
 			// Download the result
 			const downloadUrl = URL.createObjectURL(trimmedBlob);
@@ -468,7 +501,7 @@
 						<div class="space-y-3 text-sm sm:text-base text-gray-300">
 							<p>
 								<strong class="text-teal-400">Video Shaper</strong> is a completely <strong class="text-teal-400">free</strong> video editor that runs entirely in your browser. 
-								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, and <strong class="text-teal-400">compress</strong> videos with complete privacy—all processing happens on your device, and videos never leave your computer.
+								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, <strong class="text-teal-400">compress</strong>, and <strong class="text-teal-400">convert</strong> videos with complete privacy—all processing happens on your device, and videos never leave your computer.
 							</p>
 							
 							<div>
@@ -477,6 +510,7 @@
 									<li>Trim videos to specific time ranges</li>
 									<li>Crop videos to adjust frame and aspect ratio</li>
 									<li>Compress videos to reduce file size</li>
+									<li>Convert videos between formats (MP4, MOV, AVI, MKV, FLV)</li>
 									<li>Real-time preview of trim selection</li>
 									<li>No uploads required - 100% client-side processing</li>
 								</ul>
@@ -511,7 +545,7 @@
 										<p class="text-gray-400">
 											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
 											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
-											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
+											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
 											The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
 											No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
 										</p>
@@ -520,8 +554,18 @@
 									<div class="text-gray-300">
 										<h3 class="font-semibold text-gray-200 mb-1">What video formats are supported?</h3>
 										<p class="text-gray-400">
-											Video Shaper supports common video formats including MP4, WebM, MOV, AVI, and more. 
-											The app uses ffmpeg.wasm which supports most video codecs. For best compatibility, MP4 files are recommended.
+											Video Shaper supports common video formats including MP4, MOV, AVI, MKV, FLV, and more. 
+											The app uses ffmpeg.wasm which supports most video codecs. For best compatibility, MP4 files are recommended. 
+											You can also convert videos between different formats using the format conversion feature.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Can I convert videos to different formats?</h3>
+										<p class="text-gray-400">
+											Yes! Video Shaper includes a format conversion feature that allows you to convert videos between different formats. 
+											You can convert to MP4, MOV, AVI, MKV, or FLV formats. Format conversion requires re-encoding the video, 
+											which may take longer than preserving the original format, but it's useful when you need a specific format for compatibility.
 										</p>
 									</div>
 
@@ -733,6 +777,19 @@
 									processingWarning = ''; // Clear warning when compression is toggled
 								}}
 								onCrfChange={(value) => (crf = value)}
+							/>
+
+							<FormatControls
+								bind:formatConversionEnabled
+								bind:outputFormat
+								{inputFormat}
+								disabled={processing}
+								onFormatConversionToggle={(enabled) => {
+									formatConversionEnabled = enabled;
+								}}
+								onOutputFormatChange={(format) => {
+									outputFormat = format;
+								}}
 							/>
 
 							{#if estimatedSize > 0}

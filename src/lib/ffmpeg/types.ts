@@ -19,6 +19,7 @@ export interface TrimOptions {
 	compressionEnabled?: boolean; // whether to apply compression
 	crf?: number; // Constant Rate Factor (18-28, lower = higher quality)
 	crop?: CropOptions; // optional crop settings
+	outputFormat?: string; // output format (e.g., 'mp4', 'mov', 'avi', 'mkv', 'flv')
 }
 
 export interface FFmpegError {

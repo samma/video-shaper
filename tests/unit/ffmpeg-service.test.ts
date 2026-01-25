@@ -78,5 +78,30 @@ describe('FFmpegService Instance Methods', () => {
 		expect(result).toBeInstanceOf(Blob);
 		expect(service.isLoaded()).toBe(true);
 	});
+
+
+	it('should handle format conversion to MOV', async () => {
+		const mockFile = new File(['test'], 'test.mp4', { type: 'video/mp4' });
+		const result = await service.trimVideo(mockFile, {
+			startTime: 0,
+			duration: 10,
+			outputFormat: 'mov'
+		});
+		expect(result).toBeInstanceOf(Blob);
+		expect(result.type).toBe('video/quicktime');
+	});
+
+	it('should handle format conversion with compression', async () => {
+		const mockFile = new File(['test'], 'test.mp4', { type: 'video/mp4' });
+		const result = await service.trimVideo(mockFile, {
+			startTime: 0,
+			duration: 10,
+			outputFormat: 'mov',
+			compressionEnabled: true,
+			crf: 23
+		});
+		expect(result).toBeInstanceOf(Blob);
+		expect(result.type).toBe('video/quicktime');
+	});
 });
 
