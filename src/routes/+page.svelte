@@ -59,9 +59,16 @@
 	let processingStatus: string = '';
 	let processingError: string = '';
 	let processingWarning: string = '';
+	let downloadSuccessMessage: string = '';
 	
 	// Initial delay timeout for status message
 	let initialDelayTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	// Detect iOS device
+	function isIOS(): boolean {
+		return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+	}
 
 	// Accordion state
 	let limitationsExpanded: boolean = false;
@@ -161,6 +168,10 @@
 		processingWarning = '';
 	}
 
+	function handleDismissSuccess() {
+		downloadSuccessMessage = '';
+	}
+
 	// Computed: estimated output file size
 	// Use cropped dimensions if crop is enabled, otherwise use original dimensions
 	// Round to integers since pixels are whole numbers
@@ -253,6 +264,8 @@
 		resolutionScalingEnabled = false;
 		resolutionScale = 100;
 		targetResolution = null;
+		// Reset success message
+		downloadSuccessMessage = '';
 	}
 
 	function goBack() {
@@ -382,6 +395,7 @@
 
 		// Clear any previous errors and start processing
 		processingError = '';
+		downloadSuccessMessage = ''; // Clear previous success message
 		processing = true;
 		processingProgress = 0;
 		processingStatus = '';
@@ -547,11 +561,27 @@
 			document.body.appendChild(a);
 			a.click();
 			document.body.removeChild(a);
-			URL.revokeObjectURL(downloadUrl);
+			
+			// Small delay before revoking URL to ensure download starts
+			setTimeout(() => {
+				URL.revokeObjectURL(downloadUrl);
+			}, 100);
 
 			// Set final progress
 			processingProgress = 1;
 			processingStatus = 'Complete';
+			
+			// Show iOS-specific download instructions
+			if (isIOS()) {
+				downloadSuccessMessage = 'Video downloaded! On iPhone/iPad: Tap the download icon (↓) in Safari\'s address bar to view, or find it in Files app > Downloads folder.';
+			} else {
+				downloadSuccessMessage = 'Video downloaded! Check your browser\'s download folder.';
+			}
+			
+			// Auto-dismiss success message after 12 seconds
+			setTimeout(() => {
+				downloadSuccessMessage = '';
+			}, 12000);
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
 			// Don't show error if it was cancelled
@@ -681,6 +711,15 @@
 											Reducing resolution significantly decreases file size - for example, reducing to 50% resolution (half width and height) results in approximately 25% of the original file size. 
 											You can use the percentage slider for custom scaling or select from preset resolutions like 1080p, 720p, 480p, etc. 
 											This is especially useful for creating smaller files for sharing or storage while maintaining acceptable quality.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Why can't I view videos directly on iPhone/iPad Safari?</h3>
+										<p class="text-gray-400">
+											iOS Safari has limitations with playing videos directly from blob URLs (temporary browser URLs). When you try to "view" a processed video in Safari, it may not play properly. 
+											This is a known Safari limitation, not an issue with Video Shaper. <strong class="text-teal-400">The solution is to download the video</strong> - tap the download icon (↓) in Safari's address bar after processing, 
+											or find the file in the Files app under Downloads. Downloaded videos play perfectly in the Photos app, Files app, or any video player on your device.
 										</p>
 									</div>
 
@@ -979,6 +1018,30 @@
 								<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
 									<p class="text-red-200 font-semibold text-sm sm:text-base">Error</p>
 									<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
+								</div>
+							{/if}
+
+							{#if downloadSuccessMessage}
+								<div class="bg-green-900/50 border border-green-700 rounded-lg p-3 sm:p-4">
+									<div class="flex items-start gap-3">
+										<svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+										</svg>
+										<div class="flex-1">
+											<p class="text-green-200 font-semibold text-sm sm:text-base mb-1">Download Complete</p>
+											<p class="text-green-300 text-xs sm:text-sm">{downloadSuccessMessage}</p>
+										</div>
+										<button
+											on:click={handleDismissSuccess}
+											class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0 flex items-center gap-1.5"
+											aria-label="Hide success message"
+										>
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+											<span>Hide</span>
+										</button>
+									</div>
 								</div>
 							{/if}
 
