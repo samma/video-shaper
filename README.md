@@ -80,7 +80,11 @@ The app will automatically deploy on every push to your main branch.
 
 ## License
 
-MIT
+Video Shaper is free software licensed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later).
+
+You are free to use, modify, and distribute this software under the terms of the GPL. See the [LICENSE](LICENSE) file for details.
+
+This project uses FFmpeg (via ffmpeg.wasm) which is also licensed under GPL/LGPL. See the [LICENSES](LICENSES/) folder for third-party license texts.
 
 ## Contact
 

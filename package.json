@@ -2,6 +2,7 @@
 	"name": "video-shaper",
 	"version": "0.0.1",
 	"type": "module",
+	"license": "GPL-3.0-or-later",
 	"author": "samma@samma.no",
 	"scripts": {
 		"dev": "vite dev",

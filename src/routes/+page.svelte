@@ -844,6 +844,16 @@
 										</p>
 									</div>
 
+									<div class="border-t border-gray-600 pt-4 mb-4">
+										<h3 class="font-semibold text-gray-300 mb-3">Project License</h3>
+										<p class="text-gray-400">
+											Video Shaper is free software licensed under the 
+											<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GNU General Public License v3.0</a> 
+											or later. You are free to use, modify, and distribute this software under the terms of the GPL.
+											Source code is available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
+										</p>
+									</div>
+
 									<div class="border-t border-gray-600 pt-4">
 										<h3 class="font-semibold text-gray-300 mb-3">Third-Party Licenses</h3>
 										<p class="mb-3">

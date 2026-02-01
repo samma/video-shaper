@@ -48,6 +48,10 @@ Thank you for your interest in contributing to Video Shaper! This document provi
 - Ensure the PR builds successfully
 - Keep PRs focused on a single feature or fix
 
+## License
+
+By contributing to Video Shaper, you agree that your contributions will be licensed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later), the same license as the project.
+
 ## Questions?
 
 Feel free to open an issue for questions or discussions about potential contributions. You can also contact the maintainer at samma@samma.no.
