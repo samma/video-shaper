@@ -536,6 +536,14 @@
 			processingProgress = 1;
 			processingStatus = 'Complete';
 			
+			// Track successful video processing (anonymous aggregate count only)
+			if (typeof window !== 'undefined' && (window as any).goatcounter?.count) {
+				(window as any).goatcounter.count({
+					path: 'video-process-success',
+					event: true
+				});
+			}
+			
 			if (isIOS()) {
 				downloadSuccessMessage = 'Video downloaded! On iPhone/iPad: Tap the download icon (↓) in Safari\'s address bar to view, or find it in Files app > Downloads folder.';
 			} else {
@@ -549,6 +557,14 @@
 			const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
 			if (!errorMessage.includes('cancelled')) {
 				processingError = errorMessage;
+				
+				// Track failed video processing (anonymous aggregate count only)
+				if (typeof window !== 'undefined' && (window as any).goatcounter?.count) {
+					(window as any).goatcounter.count({
+						path: 'video-process-error',
+						event: true
+					});
+				}
 			} else {
 				processingError = '';
 			}
