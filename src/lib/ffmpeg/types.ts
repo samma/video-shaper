@@ -25,6 +25,7 @@ export interface TrimOptions {
 		height?: number; // target height (width calculated from aspect ratio)
 		maintainAspectRatio: boolean; // always true for this feature
 	};
+	audioVolume?: number; // audio volume percentage (0 = mute/remove, 100 = original, 200 = 2x)
 }
 
 export interface FFmpegError {

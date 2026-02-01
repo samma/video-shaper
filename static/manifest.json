@@ -1,7 +1,7 @@
 {
 	"name": "Free Video Shaper",
 	"short_name": "Video Shaper",
-	"description": "Free browser-based video editor for trimming, cropping, compressing, converting formats, and scaling resolution",
+	"description": "Free browser-based video editor for trimming, cropping, compressing, converting formats, scaling resolution, and adjusting audio",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#111827",

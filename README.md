@@ -1,6 +1,6 @@
 # Video Shaper
 
-A client-side video editor that runs entirely in your browser. Trim, crop, compress, convert formats, and scale resolution - all without uploading videos to any server.
+A client-side video editor that runs entirely in your browser. Trim, crop, compress, convert formats, scale resolution, and adjust audio - all without uploading videos to any server.
 
 ## Features
 
@@ -11,6 +11,7 @@ A client-side video editor that runs entirely in your browser. Trim, crop, compr
 - **Compress Videos** - Reduce file size with adjustable quality settings
 - **Convert Formats** - Convert videos between MP4, MOV, AVI, MKV, and FLV formats
 - **Scale Resolution** - Reduce or increase video resolution while maintaining aspect ratio
+- **Adjust Audio** - Change audio volume levels (0-200%)
 - **Simple Interface** - Easy-to-use controls with video preview
 - **Privacy-First** - No uploads, no transfers, complete privacy
 

@@ -33,6 +33,7 @@ export function formatFileSizeMB(bytes: number): string {
  * @param outputFormat Output format (e.g., 'mp4', 'mov', 'avi', 'mkv', 'flv')
  * @param scaleWidth Scaled output width in pixels
  * @param scaleHeight Scaled output height in pixels
+ * @param removeAudio Whether audio is being removed
  * @returns Estimated file size in bytes
  */
 export function estimateOutputFileSize(
@@ -47,7 +48,8 @@ export function estimateOutputFileSize(
 	cropHeight?: number,
 	outputFormat?: string,
 	scaleWidth?: number,
-	scaleHeight?: number
+	scaleHeight?: number,
+	removeAudio?: boolean
 ): number {
 	if (originalDuration === 0) return 0;
 
@@ -113,6 +115,11 @@ export function estimateOutputFileSize(
 		};
 		const multiplier = formatMultipliers[outputFormat.toLowerCase()] || 1.0;
 		estimatedSize = estimatedSize * multiplier;
+	}
+
+	// Account for audio removal (audio typically ~5-10% of file size)
+	if (removeAudio) {
+		estimatedSize = estimatedSize * 0.92; // Reduce by ~8% for audio removal
 	}
 
 	return Math.max(0, estimatedSize);

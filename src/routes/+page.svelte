@@ -8,6 +8,7 @@
 	import CompressionControls from '$lib/components/CompressionControls.svelte';
 	import FormatControls from '$lib/components/FormatControls.svelte';
 	import ResolutionControls from '$lib/components/ResolutionControls.svelte';
+	import AudioControls from '$lib/components/AudioControls.svelte';
 	import ProcessButton from '$lib/components/ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
@@ -52,6 +53,10 @@
 	let resolutionScalingEnabled: boolean = false;
 	let resolutionScale: number = 100; // Percentage (100 = original)
 	let targetResolution: string | null = null; // Preset name or null for custom
+
+	// Audio state
+	let audioAdjustmentEnabled: boolean = false;
+	let audioVolume: number = 100; // Volume percentage (0 = mute, 100 = original, 200 = 2x)
 
 	// Processing state
 	let processing: boolean = false;
@@ -195,7 +200,8 @@
 			cropEnabled && cropHeight > 0 ? cropHeight : undefined,
 			formatConversionEnabled && outputFormat !== inputFormat ? outputFormat : undefined,
 			resolutionScalingEnabled && scaledDims.width > 0 ? scaledDims.width : undefined,
-			resolutionScalingEnabled && scaledDims.height > 0 ? scaledDims.height : undefined
+			resolutionScalingEnabled && scaledDims.height > 0 ? scaledDims.height : undefined,
+			audioAdjustmentEnabled && audioVolume === 0 // removeAudio (only when muted)
 		)
 		: 0;
 
@@ -264,6 +270,9 @@
 		resolutionScalingEnabled = false;
 		resolutionScale = 100;
 		targetResolution = null;
+		// Reset audio
+		audioAdjustmentEnabled = false;
+		audioVolume = 100;
 		// Reset success message
 		downloadSuccessMessage = '';
 	}
@@ -540,6 +549,11 @@
 				}
 			}
 
+			// Add audio volume adjustment if enabled and changed from default
+			if (audioAdjustmentEnabled && audioVolume !== 100) {
+				trimOptions.audioVolume = audioVolume;
+			}
+
 			// Trim the video
 			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, trimOptions);
 
@@ -622,7 +636,7 @@
 			Free Video Shaper
 		</h1>
 		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
-			Trim, Crop, Compress, Convert and Resize videos for free without uploading anything
+			Trim, Crop, Compress, Convert, Resize & Adjust Audio in videos - free, no uploads
 		</p>
 
 		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
@@ -635,7 +649,7 @@
 						<div class="space-y-3 text-sm sm:text-base text-gray-300">
 							<p>
 								<strong class="text-teal-400">Video Shaper</strong> is a completely <strong class="text-teal-400">free</strong> video editor that runs entirely in your browser. 
-								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, <strong class="text-teal-400">compress</strong>, <strong class="text-teal-400">convert</strong>, and <strong class="text-teal-400">resize</strong> videos with complete privacy—all processing happens on your device, and videos never leave your computer.
+								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, <strong class="text-teal-400">compress</strong>, <strong class="text-teal-400">convert</strong>, <strong class="text-teal-400">resize</strong>, and <strong class="text-teal-400">adjust audio</strong> in videos with complete privacy—all processing happens on your device, and videos never leave your computer.
 							</p>
 							
 							<div>
@@ -646,6 +660,7 @@
 									<li>Compress videos to reduce file size</li>
 									<li>Convert videos between formats (MP4, MOV, AVI, MKV, FLV)</li>
 									<li>Reduce video resolution to decrease file size</li>
+									<li>Adjust audio volume levels (including mute)</li>
 									<li>Real-time preview of trim selection</li>
 									<li>No uploads required - 100% client-side processing</li>
 								</ul>
@@ -680,7 +695,7 @@
 										<p class="text-gray-400">
 											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
 											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
-											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, <strong class="text-teal-400">resolution scaling</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
+											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, <strong class="text-teal-400">resolution scaling</strong>, <strong class="text-teal-400">audio removal</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
 											The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
 											No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
 										</p>
@@ -711,6 +726,16 @@
 											Reducing resolution significantly decreases file size - for example, reducing to 50% resolution (half width and height) results in approximately 25% of the original file size. 
 											You can use the percentage slider for custom scaling or select from preset resolutions like 1080p, 720p, 480p, etc. 
 											This is especially useful for creating smaller files for sharing or storage while maintaining acceptable quality.
+										</p>
+									</div>
+
+									<div class="text-gray-300">
+										<h3 class="font-semibold text-gray-200 mb-1">Can I adjust the audio volume in videos?</h3>
+										<p class="text-gray-400">
+											Yes! Video Shaper includes an audio control feature that allows you to adjust the volume level from 0% to 200%. 
+											You can reduce volume (e.g., 50%), keep it at the original level (100%), or boost it (up to 200%). 
+											Setting volume to 0% completely removes the audio track, which is useful for creating silent videos or removing unwanted background noise. 
+											Removing audio also slightly reduces the file size.
 										</p>
 									</div>
 
@@ -961,6 +986,18 @@
 								}}
 								onTargetResolutionChange={(preset) => {
 									targetResolution = preset;
+								}}
+							/>
+
+							<AudioControls
+								bind:audioAdjustmentEnabled
+								bind:volume={audioVolume}
+								disabled={processing}
+								onAudioAdjustmentToggle={(enabled) => {
+									audioAdjustmentEnabled = enabled;
+								}}
+								onVolumeChange={(vol) => {
+									audioVolume = vol;
 								}}
 							/>
 

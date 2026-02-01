@@ -346,8 +346,14 @@ export class FFmpegService {
 				command.push('-vf', videoFilters.join(','));
 			}
 
-			// Determine if we need to re-encode
+			// Check if we need to adjust audio volume (0 = mute, 100 = original, other = adjust)
+			const audioVolume = options.audioVolume;
+			const shouldMuteAudio = audioVolume === 0;
+			const shouldAdjustVolume = audioVolume !== undefined && audioVolume !== 100 && audioVolume !== 0;
+
+			// Determine if we need to re-encode the video stream
 			// Re-encoding is required if: compression enabled, crop enabled, scale enabled, or format conversion needed
+			// Note: audio changes do NOT require video re-encoding - we can copy video stream
 			const needsReencoding = options.compressionEnabled || options.crop || options.scale || needsFormatConversion;
 
 			if (needsReencoding) {
@@ -373,7 +379,7 @@ export class FFmpegService {
 					// -preset ultrafast: fastest encoding (lowest memory usage)
 					// -tune fastdecode: optimize for faster decoding (lower memory)
 					// -threads 1: single thread (less memory overhead)
-					// -c:a: use format-specific audio codec
+					// -c:a: use format-specific audio codec (or -an to remove audio)
 					// -movflags +faststart: optimize for web playback (only for MP4 and smaller files)
 					command.push(
 						'-c:v',
@@ -385,10 +391,20 @@ export class FFmpegService {
 						'-tune',
 						'fastdecode',
 						'-threads',
-						'1',
-						'-c:a',
-						codecs.audioCodec
+						'1'
 					);
+					
+					// Handle audio: remove, adjust volume, or encode normally
+					if (shouldMuteAudio) {
+						command.push('-an'); // Remove audio track
+					} else if (shouldAdjustVolume) {
+						// Apply volume filter and re-encode audio
+						const volumeMultiplier = audioVolume! / 100;
+						command.push('-af', `volume=${volumeMultiplier}`);
+						command.push('-c:a', codecs.audioCodec);
+					} else {
+						command.push('-c:a', codecs.audioCodec);
+					}
 					
 					// Only add faststart for MP4 and smaller files to avoid second-pass memory issues
 					if (useFaststart) {
@@ -407,15 +423,38 @@ export class FFmpegService {
 						'-crf',
 						'23', // Default quality when compression not explicitly enabled
 						'-threads',
-						'1',
-						'-c:a',
-						codecs.audioCodec
+						'1'
 					);
+					
+					// Handle audio: remove, adjust volume, or encode normally
+					if (shouldMuteAudio) {
+						command.push('-an'); // Remove audio track
+					} else if (shouldAdjustVolume) {
+						// Apply volume filter and re-encode audio
+						const volumeMultiplier = audioVolume! / 100;
+						command.push('-af', `volume=${volumeMultiplier}`);
+						command.push('-c:a', codecs.audioCodec);
+					} else {
+						command.push('-c:a', codecs.audioCodec);
+					}
 				}
 			} else {
-				// No re-encoding needed - can use codec copy (fastest)
-				// Only works if input and output formats are the same
-				command.push('-c', 'copy');
+				// No video re-encoding needed
+				// Check if we need to process audio
+				if (shouldMuteAudio) {
+					// Copy video stream only, remove audio
+					command.push('-c:v', 'copy', '-an');
+				} else if (shouldAdjustVolume) {
+					// Copy video stream, but re-encode audio with volume adjustment
+					const volumeMultiplier = audioVolume! / 100;
+					const codecs = getFormatCodecs(outputFormat);
+					command.push('-c:v', 'copy');
+					command.push('-af', `volume=${volumeMultiplier}`);
+					command.push('-c:a', codecs.audioCodec);
+				} else {
+					// Copy both streams (fastest)
+					command.push('-c', 'copy');
+				}
 			}
 
 			// Add -y flag to overwrite output file if it exists
@@ -436,6 +475,13 @@ export class FFmpegService {
 			}
 			if (options.scale) {
 				debugLog('Scale:', `w=${options.scale.width || 'auto'}, h=${options.scale.height || 'auto'}`);
+			}
+			if (options.audioVolume !== undefined) {
+				if (options.audioVolume === 0) {
+					debugLog('Audio: REMOVED (muted)');
+				} else {
+					debugLog('Audio volume:', `${options.audioVolume}%`);
+				}
 			}
 			
 			// Log memory info if available
