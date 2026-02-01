@@ -1,1126 +1,272 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import FFmpegLoader from '$lib/components/FFmpegLoader.svelte';
-	import FileUpload from '$lib/components/FileUpload.svelte';
-	import VideoPreview from '$lib/components/VideoPreview.svelte';
-	import TrimControls from '$lib/components/TrimControls.svelte';
-	import CropControls from '$lib/components/CropControls.svelte';
-	import CompressionControls from '$lib/components/CompressionControls.svelte';
-	import FormatControls from '$lib/components/FormatControls.svelte';
-	import ResolutionControls from '$lib/components/ResolutionControls.svelte';
-	import AudioControls from '$lib/components/AudioControls.svelte';
-	import ProcessButton from '$lib/components/ProcessButton.svelte';
-	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
-	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
+	import VideoEditor from '$lib/components/VideoEditor.svelte';
 
 	let title = 'Free Video Shaper';
-	let ffmpegService: FFmpegService | null = null;
-	let ffmpegError = '';
-	let ffmpegLoading = false;
-	let ffmpegLoadPromise: Promise<FFmpegService> | null = null;
-	let ffmpegLoadResolve: ((service: FFmpegService) => void) | null = null;
 
-	// Video state
-	let selectedFile: File | null = null;
-	let videoDuration: number = 0;
-	let startTime: number = 0;
-	let endTime: number = 0;
-	let videoPreviewComponent: any = null;
-
-	// Trim state
-	let trimEnabled: boolean = true; // Enabled by default
-
-	// Compression state
-	let compressionEnabled: boolean = false;
-	let crf: number = 23;
-
-	// Crop state
-	let cropEnabled: boolean = false;
-	let cropX: number = 0;
-	let cropY: number = 0;
-	let cropWidth: number = 0;
-	let cropHeight: number = 0;
-	let aspectRatioLocked: boolean = false;
-	let videoWidth: number = 0;
-	let videoHeight: number = 0;
-
-	// Format conversion state
-	let formatConversionEnabled: boolean = false;
-	let outputFormat: string = 'mp4';
-	let inputFormat: string = 'mp4';
-
-	// Resolution scaling state
-	let resolutionScalingEnabled: boolean = false;
-	let resolutionScale: number = 100; // Percentage (100 = original)
-	let targetResolution: string | null = null; // Preset name or null for custom
-
-	// Audio state
-	let audioAdjustmentEnabled: boolean = false;
-	let audioVolume: number = 100; // Volume percentage (0 = mute, 100 = original, 200 = 2x)
-
-	// Processing state
-	let processing: boolean = false;
-	let processingProgress: number = 0;
-	let processingStatus: string = '';
-	let processingError: string = '';
-	let processingWarning: string = '';
-	let downloadSuccessMessage: string = '';
-	
-	// Initial delay timeout for status message
-	let initialDelayTimeout: ReturnType<typeof setTimeout> | null = null;
-
-	// Detect iOS device
-	function isIOS(): boolean {
-		return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-	}
-
-	// Accordion state
+	// Accordion state for FAQ and Disclaimer (shown below editor when no file selected)
 	let limitationsExpanded: boolean = false;
 	let disclaimerExpanded: boolean = false;
-
-	// Format detection helper
-	function getFileFormat(file: File): string {
-		const extension = file.name.match(/\.[^/.]+$/)?.[0]?.toLowerCase() || '';
-		const formatMap: Record<string, string> = {
-			'.mp4': 'mp4',
-			'.mov': 'mov',
-			'.avi': 'avi',
-			'.mkv': 'mkv',
-			'.flv': 'flv'
-		};
-		return formatMap[extension] || 'mp4'; // default to mp4
-	}
-
-	// Ensure dimension is even (required for H.264)
-	function makeEven(value: number): number {
-		return Math.floor(value / 2) * 2;
-	}
-
-	// Calculate scaled dimensions maintaining aspect ratio
-	function calculateScaledDimensions(
-		width: number,
-		height: number,
-		scalePercent: number,
-		preset: string | null
-	): { width: number; height: number } {
-		if (width === 0 || height === 0) return { width: 0, height: 0 };
-
-		const RESOLUTION_PRESETS = [
-			{ label: '4K', value: '4k', width: 3840, height: 2160 },
-			{ label: '1080p', value: '1080p', width: 1920, height: 1080 },
-			{ label: '720p', value: '720p', width: 1280, height: 720 },
-			{ label: '480p', value: '480p', width: 854, height: 480 },
-			{ label: '360p', value: '360p', width: 640, height: 360 },
-			{ label: '240p', value: '240p', width: 426, height: 240 }
-		];
-
-		const aspectRatio = width / height;
-		let targetWidth: number;
-		let targetHeight: number;
-
-		if (preset) {
-			// Use preset dimensions
-			const presetData = RESOLUTION_PRESETS.find(p => p.value === preset);
-			if (presetData) {
-				// Fit to preset while maintaining aspect ratio
-				const widthRatio = presetData.width / width;
-				const heightRatio = presetData.height / height;
-				const scaleRatio = Math.min(widthRatio, heightRatio);
-
-				targetWidth = width * scaleRatio;
-				targetHeight = height * scaleRatio;
-			} else {
-				// Fallback to percentage
-				targetWidth = width * (scalePercent / 100);
-				targetHeight = height * (scalePercent / 100);
-			}
-		} else {
-			// Use percentage
-			targetWidth = width * (scalePercent / 100);
-			targetHeight = height * (scalePercent / 100);
-		}
-
-		// Ensure both dimensions are even
-		targetWidth = makeEven(targetWidth);
-		targetHeight = makeEven(targetHeight);
-
-		// Ensure minimum size
-		if (targetWidth < 2) targetWidth = 2;
-		if (targetHeight < 2) targetHeight = 2;
-
-		return { width: targetWidth, height: targetHeight };
-	}
-
-	async function handleCancel() {
-		// Clean up timeouts
-		if (initialDelayTimeout !== null) {
-			clearTimeout(initialDelayTimeout);
-			initialDelayTimeout = null;
-		}
-		
-		if (ffmpegService) {
-			await ffmpegService.cancel();
-		}
-		processing = false;
-		processingProgress = 0;
-		processingStatus = '';
-		processingError = 'Operation cancelled';
-		processingWarning = '';
-	}
-
-	function handleDismissWarning() {
-		processingWarning = '';
-	}
-
-	function handleDismissSuccess() {
-		downloadSuccessMessage = '';
-	}
-
-	// Computed: estimated output file size
-	// Use cropped dimensions if crop is enabled, otherwise use original dimensions
-	// Round to integers since pixels are whole numbers
-	$: effectiveWidth = Math.round(cropEnabled && cropWidth > 0 ? cropWidth : videoWidth);
-	$: effectiveHeight = Math.round(cropEnabled && cropHeight > 0 ? cropHeight : videoHeight);
-	
-	$: scaledDims = resolutionScalingEnabled && effectiveWidth > 0 && effectiveHeight > 0
-		? calculateScaledDimensions(effectiveWidth, effectiveHeight, resolutionScale, targetResolution)
-		: { width: effectiveWidth, height: effectiveHeight };
-
-	$: estimatedSize = selectedFile && videoDuration > 0
-		? estimateOutputFileSize(
-			selectedFile.size,
-			videoDuration,
-			trimEnabled ? (endTime - startTime) : videoDuration,
-			compressionEnabled,
-			crf,
-			videoWidth,
-			videoHeight,
-			cropEnabled && cropWidth > 0 ? cropWidth : undefined,
-			cropEnabled && cropHeight > 0 ? cropHeight : undefined,
-			formatConversionEnabled && outputFormat !== inputFormat ? outputFormat : undefined,
-			resolutionScalingEnabled && scaledDims.width > 0 ? scaledDims.width : undefined,
-			resolutionScalingEnabled && scaledDims.height > 0 ? scaledDims.height : undefined,
-			audioAdjustmentEnabled && audioVolume === 0 // removeAudio (only when muted)
-		)
-		: 0;
-
-	function seekVideo(time: number) {
-		if (videoPreviewComponent) {
-			videoPreviewComponent.seekTo(time);
-		}
-	}
-
-	function handleFFmpegReady(service: FFmpegService) {
-		ffmpegService = service;
-		console.log('FFmpeg is ready!');
-		// Resolve the promise if it exists
-		if (ffmpegLoadResolve) {
-			ffmpegLoadResolve(service);
-			ffmpegLoadResolve = null;
-			ffmpegLoadPromise = null;
-		}
-	}
-
-	function handleFFmpegError(error: Error) {
-		ffmpegError = error.message;
-		console.error('FFmpeg error:', error);
-	}
-
-	function handleFFmpegLoadingChange(isLoading: boolean) {
-		ffmpegLoading = isLoading;
-	}
-
-	function handleFileSelect(file: File) {
-		selectedFile = file;
-		// Push state to browser history so back button works
-		history.pushState({ editing: true }, '');
-		// Reset FFmpeg service - it will be recreated when FFmpegLoader mounts
-		ffmpegService = null;
-		ffmpegError = '';
-		// Create a promise that will resolve when FFmpeg is ready
-		ffmpegLoadPromise = new Promise((resolve) => {
-			ffmpegLoadResolve = resolve;
-		});
-		// Detect and set input format
-		inputFormat = getFileFormat(file);
-		outputFormat = inputFormat; // Default to same format
-		// Reset trim times
-		startTime = 0;
-		endTime = 0;
-		trimEnabled = true; // Reset to enabled
-		processingError = '';
-		processingWarning = '';
-		videoDuration = 0; // Reset duration to show loading state
-		// Reset compression
-		compressionEnabled = false;
-		crf = 23;
-		// Reset crop
-		cropEnabled = false;
-		cropX = 0;
-		cropY = 0;
-		cropWidth = 0;
-		cropHeight = 0;
-		aspectRatioLocked = false;
-		videoWidth = 0;
-		videoHeight = 0;
-		// Reset format conversion
-		formatConversionEnabled = false;
-		// Reset resolution scaling
-		resolutionScalingEnabled = false;
-		resolutionScale = 100;
-		targetResolution = null;
-		// Reset audio
-		audioAdjustmentEnabled = false;
-		audioVolume = 100;
-		// Reset success message
-		downloadSuccessMessage = '';
-	}
-
-	function goBack() {
-		selectedFile = null;
-		ffmpegService = null;
-		ffmpegError = '';
-		ffmpegLoadPromise = null;
-		ffmpegLoadResolve = null;
-	}
-
-	onMount(() => {
-		// Handle browser back button
-		const handlePopState = (event: PopStateEvent) => {
-			if (selectedFile) {
-				goBack();
-			}
-		};
-
-		window.addEventListener('popstate', handlePopState);
-
-		return () => {
-			window.removeEventListener('popstate', handlePopState);
-		};
-	});
-
-	function handleDurationLoad(duration: number) {
-		videoDuration = duration;
-		endTime = duration;
-		// Warning will automatically hide when videoDuration > 0
-	}
-
-	function handleVideoMetadataLoad(width: number, height: number) {
-		videoWidth = width;
-		videoHeight = height;
-		// Initialize crop to full video size if enabled
-		if (cropEnabled && cropWidth === 0 && cropHeight === 0) {
-			cropX = 0;
-			cropY = 0;
-			cropWidth = width;
-			cropHeight = height;
-		}
-	}
-
-	function handleCropChange(x: number, y: number, width: number, height: number) {
-		cropX = x;
-		cropY = y;
-		cropWidth = width;
-		cropHeight = height;
-	}
-
-	function handleCropToggle(enabled: boolean) {
-		cropEnabled = enabled;
-		if (enabled && videoWidth > 0 && videoHeight > 0 && cropWidth === 0) {
-			// Initialize to full video size
-			cropX = 0;
-			cropY = 0;
-			cropWidth = videoWidth;
-			cropHeight = videoHeight;
-		} else if (!enabled) {
-			// Reset crop
-			cropX = 0;
-			cropY = 0;
-			cropWidth = 0;
-			cropHeight = 0;
-		}
-	}
-
-	function handleAspectRatioLockToggle(locked: boolean) {
-		aspectRatioLocked = locked;
-	}
-
-	function handlePresetSelect(aspectRatio: number | null) {
-		if (!cropEnabled || videoWidth === 0 || videoHeight === 0) return;
-		
-		if (aspectRatio === null) {
-			// Custom - unlock aspect ratio
-			aspectRatioLocked = false;
-			return;
-		}
-		
-		// Apply preset aspect ratio
-		aspectRatioLocked = true;
-		
-		// Calculate new crop dimensions maintaining center point
-		const currentCenterX = cropX + cropWidth / 2;
-		const currentCenterY = cropY + cropHeight / 2;
-		
-		let newWidth: number;
-		let newHeight: number;
-		
-		if (aspectRatio > videoWidth / videoHeight) {
-			// Preset is wider than video - fit to height
-			newHeight = Math.min(videoHeight, cropHeight);
-			newWidth = newHeight * aspectRatio;
-		} else {
-			// Preset is taller than video - fit to width
-			newWidth = Math.min(videoWidth, cropWidth);
-			newHeight = newWidth / aspectRatio;
-		}
-		
-		// Constrain to video bounds
-		if (newWidth > videoWidth) {
-			newWidth = videoWidth;
-			newHeight = newWidth / aspectRatio;
-		}
-		if (newHeight > videoHeight) {
-			newHeight = videoHeight;
-			newWidth = newHeight * aspectRatio;
-		}
-		
-		// Center the crop area
-		let newX = currentCenterX - newWidth / 2;
-		let newY = currentCenterY - newHeight / 2;
-		
-		// Constrain to video bounds
-		newX = Math.max(0, Math.min(videoWidth - newWidth, newX));
-		newY = Math.max(0, Math.min(videoHeight - newHeight, newY));
-		
-		cropX = newX;
-		cropY = newY;
-		cropWidth = newWidth;
-		cropHeight = newHeight;
-	}
-
-	async function handleProcess() {
-		if (!selectedFile) return;
-
-		// Clear any previous errors and start processing
-		processingError = '';
-		downloadSuccessMessage = ''; // Clear previous success message
-		processing = true;
-		processingProgress = 0;
-		processingStatus = '';
-
-		// If FFmpeg is not ready yet, wait for it
-		if (!ffmpegService) {
-			if (ffmpegLoading && ffmpegLoadPromise) {
-				// FFmpeg is loading, wait for it
-				processingStatus = 'Loading video processor...';
-				try {
-					// Wait for FFmpeg to be ready
-					await ffmpegLoadPromise;
-					// Service should be set by handleFFmpegReady
-					if (!ffmpegService) {
-						processingError = 'Failed to load video processor';
-						processing = false;
-						return;
-					}
-				} catch (error) {
-					processingError = 'Failed to load video processor';
-					processing = false;
-					return;
-				}
-			} else {
-				// FFmpeg hasn't started loading yet
-				processingError = 'Video processor not available';
-				processing = false;
-				return;
-			}
-		}
-
-		// Check for warnings about large files with compression
-		processingWarning = '';
-		if (compressionEnabled) {
-			const fileSizeMB = selectedFile.size / (1024 * 1024);
-			const processedDuration = trimEnabled ? (endTime - startTime) : videoDuration;
-			const originalDuration = videoDuration;
-			const estimatedProcessedSizeMB = (fileSizeMB * processedDuration) / originalDuration;
-
-			// Warn if file is large (either original or processed portion)
-			if (fileSizeMB > 100 || estimatedProcessedSizeMB > 50) {
-				const durationLabel = trimEnabled ? 'trimmed' : 'full video';
-				processingWarning =
-					`Large file detected (${formatFileSizeMB(selectedFile.size)} original, ` +
-					`~${formatFileSizeMB(estimatedProcessedSizeMB * 1024 * 1024)} ${durationLabel}). ` +
-					`Compression may fail or take a very long time due to browser memory limits.`;
-				// Continue processing - warning is informational only
-			}
-		}
-
-		// Clean up any existing timeouts
-		if (initialDelayTimeout !== null) {
-			clearTimeout(initialDelayTimeout);
-		}
-
-		// Initial delay handling - show status if progress stays at 0% for >2 seconds
-		initialDelayTimeout = setTimeout(() => {
-			if (processingProgress === 0 && processing) {
-				if (!processingStatus || processingStatus === '') {
-					processingStatus = 'Analyzing video...';
-				}
-			}
-		}, 2000);
-
-		try {
-			// Set up status callback
-			ffmpegService.onStatus((status) => {
-				processingStatus = status;
-				// Clear initial delay timeout once we get a real status
-				if (initialDelayTimeout !== null) {
-					clearTimeout(initialDelayTimeout);
-					initialDelayTimeout = null;
-				}
-			});
-
-			// Set up progress tracking
-			ffmpegService.onProgress((progress) => {
-				processingProgress = progress.ratio;
-				
-				// Update status from progress if available
-				if (progress.status) {
-					processingStatus = progress.status;
-					// Clear initial delay timeout once we get a real status
-					if (initialDelayTimeout !== null) {
-						clearTimeout(initialDelayTimeout);
-						initialDelayTimeout = null;
-					}
-				}
-				
-				// Clear initial delay timeout if progress > 0
-				if (progress.ratio > 0 && initialDelayTimeout !== null) {
-					clearTimeout(initialDelayTimeout);
-					initialDelayTimeout = null;
-				}
-			});
-
-			// Build trim options with optional crop and format conversion
-			const trimOptions: any = {
-				startTime: trimEnabled ? startTime : 0,
-				duration: trimEnabled ? (endTime - startTime) : videoDuration,
-				compressionEnabled,
-				crf
-			};
-
-			// Add crop options if enabled
-			if (cropEnabled && cropWidth > 0 && cropHeight > 0) {
-				trimOptions.crop = {
-					x: cropX,
-					y: cropY,
-					width: cropWidth,
-					height: cropHeight,
-					aspectRatioLocked,
-					aspectRatio: cropWidth / cropHeight
-				};
-			}
-
-			// Add format conversion if enabled and different from input
-			if (formatConversionEnabled && outputFormat !== inputFormat) {
-				trimOptions.outputFormat = outputFormat;
-			}
-
-			// Add resolution scaling if enabled
-			// Use cropped dimensions if crop is enabled, otherwise use original dimensions
-			const effectiveWidth = cropEnabled && cropWidth > 0 ? cropWidth : videoWidth;
-			const effectiveHeight = cropEnabled && cropHeight > 0 ? cropHeight : videoHeight;
-			
-			if (resolutionScalingEnabled && effectiveWidth > 0 && effectiveHeight > 0) {
-				const scaledDims = calculateScaledDimensions(
-					effectiveWidth,
-					effectiveHeight,
-					resolutionScale,
-					targetResolution
-				);
-				
-				// Only add scale if dimensions are different from effective (cropped or original) dimensions
-				if (scaledDims.width !== effectiveWidth || scaledDims.height !== effectiveHeight) {
-					trimOptions.scale = {
-						width: scaledDims.width,
-						height: scaledDims.height,
-						maintainAspectRatio: true
-					};
-				}
-			}
-
-			// Add audio volume adjustment if enabled and changed from default
-			if (audioAdjustmentEnabled && audioVolume !== 100) {
-				trimOptions.audioVolume = audioVolume;
-			}
-
-			// Trim the video
-			const trimmedBlob = await ffmpegService.trimVideo(selectedFile, trimOptions);
-
-			// Generate unique filename with timestamp
-			const originalName = selectedFile.name;
-			const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
-			// Use output format extension if format conversion is enabled, otherwise use original extension
-			const outputExt = formatConversionEnabled && outputFormat !== inputFormat 
-				? `.${outputFormat}` 
-				: (originalName.match(/\.[^/.]+$/) || ['.mp4'])[0];
-			const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Format: 2024-12-02T22-45-30
-			const downloadFilename = `${nameWithoutExt}-${timestamp}${outputExt}`;
-
-			// Download the result
-			const downloadUrl = URL.createObjectURL(trimmedBlob);
-			const a = document.createElement('a');
-			a.href = downloadUrl;
-			a.download = downloadFilename;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			
-			// Small delay before revoking URL to ensure download starts
-			setTimeout(() => {
-				URL.revokeObjectURL(downloadUrl);
-			}, 100);
-
-			// Set final progress
-			processingProgress = 1;
-			processingStatus = 'Complete';
-			
-			// Show iOS-specific download instructions
-			if (isIOS()) {
-				downloadSuccessMessage = 'Video downloaded! On iPhone/iPad: Tap the download icon (↓) in Safari\'s address bar to view, or find it in Files app > Downloads folder.';
-			} else {
-				downloadSuccessMessage = 'Video downloaded! Check your browser\'s download folder.';
-			}
-			
-			// Auto-dismiss success message after 12 seconds
-			setTimeout(() => {
-				downloadSuccessMessage = '';
-			}, 12000);
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
-			// Don't show error if it was cancelled
-			if (!errorMessage.includes('cancelled')) {
-				processingError = errorMessage;
-			} else {
-				processingError = '';
-			}
-			console.error('Processing error:', error);
-		} finally {
-			// Clean up timeouts
-			if (initialDelayTimeout !== null) {
-				clearTimeout(initialDelayTimeout);
-				initialDelayTimeout = null;
-			}
-			processing = false;
-		}
-	}
 </script>
 
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
-	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8 relative">
-		<!-- Back button in upper left corner - only visible when editing -->
-		{#if selectedFile}
-			<button
-				on:click={goBack}
-				class="absolute top-0 left-0 flex items-center gap-2 px-3 py-2 hover:bg-gray-800 rounded-lg transition-colors bg-gray-900/80 backdrop-blur-sm border border-gray-700 text-gray-200 hover:text-white"
-				aria-label="Go back to file selection"
-			>
-				<!-- More recognizable back arrow icon -->
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-				</svg>
-				<span class="text-sm font-medium hidden sm:inline">Back</span>
-			</button>
-		{/if}
+	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
-			Free Video Shaper
+			{title}
 		</h1>
 		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
 			Trim, Crop, Compress, Convert, Resize & Adjust Audio in videos - free, no uploads
 		</p>
 
-		<div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
-			{#if !selectedFile}
-				<!-- Show file upload and info WITHOUT FFmpegLoader - no 30MB download yet -->
-				<FileUpload onFileSelect={handleFileSelect} disabled={processing} />
+		<VideoEditor 
+			showInfoCard={true}
+			infoCardContent="full"
+			showBackButton={true}
+		/>
 
-					<!-- Information Card -->
-					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600">
-						<div class="space-y-3 text-sm sm:text-base text-gray-300">
-							<p>
-								<strong class="text-teal-400">Video Shaper</strong> is a completely <strong class="text-teal-400">free</strong> video editor that runs entirely in your browser. 
-								<strong class="text-teal-400">Trim</strong>, <strong class="text-teal-400">crop</strong>, <strong class="text-teal-400">compress</strong>, <strong class="text-teal-400">convert</strong>, <strong class="text-teal-400">resize</strong>, and <strong class="text-teal-400">adjust audio</strong> in videos with complete privacy—all processing happens on your device, and videos never leave your computer.
+		<!-- FAQ Card (Collapsible) - shown below the editor card -->
+		<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
+			<button
+				on:click={() => (limitationsExpanded = !limitationsExpanded)}
+				class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
+				aria-expanded={limitationsExpanded}
+				aria-controls="faq-content"
+			>
+				<h2 class="text-base sm:text-lg font-semibold text-gray-200">Frequently Asked Questions</h2>
+				<svg
+					class="w-5 h-5 text-gray-400 transition-transform {limitationsExpanded ? 'rotate-180' : ''}"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+			
+			{#if limitationsExpanded}
+				<div id="faq-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
+					<div class="space-y-4 text-sm sm:text-base">
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">How does video editing work without uploading?</h3>
+							<p class="text-gray-400">
+								Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
+								When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
+								All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, <strong class="text-teal-400">resolution scaling</strong>, <strong class="text-teal-400">audio removal</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
+								The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
+								No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
 							</p>
-							
-							<div>
-								<p class="font-semibold text-gray-200 mb-1">Features:</p>
-								<ul class="list-disc list-inside space-y-1 ml-2 text-gray-300">
-									<li>Trim videos to specific time ranges</li>
-									<li>Crop videos to adjust frame and aspect ratio</li>
-									<li>Compress videos to reduce file size</li>
-									<li>Convert videos between formats (MP4, MOV, AVI, MKV, FLV)</li>
-									<li>Reduce video resolution to decrease file size</li>
-									<li>Adjust audio volume levels (including mute)</li>
-									<li>Real-time preview of trim selection</li>
-									<li>No uploads required - 100% client-side processing</li>
-								</ul>
-							</div>
-						</div>
-					</div>
-
-					<!-- FAQ Card (Collapsible) -->
-					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
-						<button
-							on:click={() => (limitationsExpanded = !limitationsExpanded)}
-							class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
-							aria-expanded={limitationsExpanded}
-							aria-controls="faq-content"
-						>
-							<h2 class="text-base sm:text-lg font-semibold text-gray-200">Frequently Asked Questions</h2>
-							<svg
-								class="w-5 h-5 text-gray-400 transition-transform {limitationsExpanded ? 'rotate-180' : ''}"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-							</svg>
-						</button>
-						
-						{#if limitationsExpanded}
-							<div id="faq-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
-								<div class="space-y-4 text-sm sm:text-base">
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">How does video editing work without uploading?</h3>
-										<p class="text-gray-400">
-											Video Shaper uses WebAssembly (WASM) technology to run FFmpeg, a powerful video processing library, directly in your browser. 
-											When you select a video file, it's loaded into your browser's memory using the File API - no network upload occurs. 
-											All video processing (<strong class="text-teal-400">trimming</strong>, <strong class="text-teal-400">cropping</strong>, <strong class="text-teal-400">compression</strong>, <strong class="text-teal-400">format conversion</strong>, <strong class="text-teal-400">resolution scaling</strong>, <strong class="text-teal-400">audio removal</strong>, encoding) happens locally on your device using your computer's CPU and memory. 
-											The processed video is then downloaded directly from your browser. This means your videos never leave your device and are never sent to any server. 
-											No mobile data or internet bandwidth is used for video processing - everything happens offline once the app is loaded.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">What video formats are supported?</h3>
-										<p class="text-gray-400">
-											Video Shaper supports common video formats including MP4, MOV, AVI, MKV, FLV, and more. 
-											The app uses ffmpeg.wasm which supports most video codecs. For best compatibility, MP4 files are recommended. 
-											You can also convert videos between different formats using the format conversion feature.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Can I convert videos to different formats?</h3>
-										<p class="text-gray-400">
-											Yes! Video Shaper includes a format conversion feature that allows you to convert videos between different formats. 
-											You can convert to MP4, MOV, AVI, MKV, or FLV formats. Format conversion requires re-encoding the video, 
-											which may take longer than preserving the original format, but it's useful when you need a specific format for compatibility.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Can I reduce video resolution to save space?</h3>
-										<p class="text-gray-400">
-											Yes! Video Shaper includes a resolution scaling feature that allows you to reduce (or increase) video resolution while maintaining the aspect ratio. 
-											Reducing resolution significantly decreases file size - for example, reducing to 50% resolution (half width and height) results in approximately 25% of the original file size. 
-											You can use the percentage slider for custom scaling or select from preset resolutions like 1080p, 720p, 480p, etc. 
-											This is especially useful for creating smaller files for sharing or storage while maintaining acceptable quality.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Can I adjust the audio volume in videos?</h3>
-										<p class="text-gray-400">
-											Yes! Video Shaper includes an audio control feature that allows you to adjust the volume level from 0% to 200%. 
-											You can reduce volume (e.g., 50%), keep it at the original level (100%), or boost it (up to 200%). 
-											Setting volume to 0% completely removes the audio track, which is useful for creating silent videos or removing unwanted background noise. 
-											Removing audio also slightly reduces the file size.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Why can't I view videos directly on iPhone/iPad Safari?</h3>
-										<p class="text-gray-400">
-											iOS Safari has limitations with playing videos directly from blob URLs (temporary browser URLs). When you try to "view" a processed video in Safari, it may not play properly. 
-											This is a known Safari limitation, not an issue with Video Shaper. <strong class="text-teal-400">The solution is to download the video</strong> - tap the download icon (↓) in Safari's address bar after processing, 
-											or find the file in the Files app under Downloads. Downloaded videos play perfectly in the Photos app, Files app, or any video player on your device.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Why is processing slow?</h3>
-										<p class="text-gray-400">
-											Video processing runs entirely in your browser using WebAssembly, which is 3-5x slower than native video editors. 
-											This is the trade-off for complete privacy - your videos never leave your device. For faster processing, 
-											trim to shorter segments (under 10 seconds) and avoid compression when possible.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">What are the file size limits?</h3>
-										<p class="text-gray-400">
-											Large videos (>100MB) may cause memory issues, especially with compression enabled. 
-											Very large output files (>20MB) may fail to download due to browser memory limits. 
-											For best results, keep trimmed segments under 10 seconds when using compression, or disable compression for larger files.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Is my video data private?</h3>
-										<p class="text-gray-400">
-											Yes! All processing happens entirely in your browser. Videos never leave your computer and are never uploaded to any server. 
-											The app downloads ffmpeg.wasm (~31MB) on first visit, but this is cached for future use.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">What is tracked?</h3>
-										<p class="text-gray-400">
-											This site uses <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter</a>, 
-											a privacy-friendly analytics service, to simply count how many people visit the page. GoatCounter does not track personal data, 
-											does not use cookies for tracking, and does not create unique user identifiers. It only collects basic page view statistics 
-											(such as page paths, referrers, and browser information) to help understand site usage. No video data or personal information is tracked.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Why does compression sometimes fail?</h3>
-										<p class="text-gray-400">
-											Compression requires significant browser memory. Very large videos or high-resolution files (like 4K) can exceed browser memory limits. 
-											If compression fails, try: trimming to a shorter segment, using higher compression (move slider left), or disabling compression entirely. 
-											The app will show helpful error messages if issues occur.
-										</p>
-									</div>
-
-									<div class="text-gray-300">
-										<h3 class="font-semibold text-gray-200 mb-1">Why is there a 30MB download when I select a video?</h3>
-										<p class="text-gray-400">
-											Video Shaper uses FFmpeg, a powerful video processing library, to handle all video operations (trimming, cropping, compression). 
-											FFmpeg is compiled to WebAssembly (WASM) format so it can run entirely in your browser - this is what enables 100% client-side processing with no uploads. 
-											The ~30MB download contains the FFmpeg WebAssembly binary and starts automatically when you select a video. 
-											The download happens silently in the background, so you can start editing immediately while it loads. 
-											If you click "Process Video" before the download completes, the app will wait for it to finish. 
-											Your browser caches this file, so subsequent visits won't require re-downloading. The download only happens after you select a video, not when you first visit the page, 
-											so you can explore the site without any downloads.
-										</p>
-									</div>
-								</div>
-							</div>
-						{/if}
-					</div>
-
-					<!-- Disclaimer Card (Collapsible) -->
-					<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
-						<button
-							on:click={() => (disclaimerExpanded = !disclaimerExpanded)}
-							class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
-							aria-expanded={disclaimerExpanded}
-							aria-controls="disclaimer-content"
-						>
-							<h2 class="text-base sm:text-lg font-semibold text-gray-200">Disclaimer</h2>
-							<svg
-								class="w-5 h-5 text-gray-400 transition-transform {disclaimerExpanded ? 'rotate-180' : ''}"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-							</svg>
-						</button>
-						
-						{#if disclaimerExpanded}
-							<div id="disclaimer-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
-								<div class="text-xs sm:text-sm text-gray-400 leading-relaxed space-y-4">
-									<div>
-										<p>
-											This service is provided "as is" without warranty of any kind. 
-											Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
-											Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
-											that may occur during video processing. Use at your own risk.
-										</p>
-										<p class="mt-3 text-gray-500 italic">
-											This project was coded 100% with Cursor using the Composer 1 model.
-										</p>
-									</div>
-
-									<div class="border-t border-gray-600 pt-4 mb-4">
-										<h3 class="font-semibold text-gray-300 mb-3">Project License</h3>
-										<p class="text-gray-400">
-											Video Shaper is free software licensed under the 
-											<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GNU General Public License v3.0</a> 
-											or later. You are free to use, modify, and distribute this software under the terms of the GPL.
-											Source code is available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
-										</p>
-									</div>
-
-									<div class="border-t border-gray-600 pt-4">
-										<h3 class="font-semibold text-gray-300 mb-3">Third-Party Licenses</h3>
-										<p class="mb-3">
-											Video Shaper uses the following open-source libraries and tools. Their respective licenses are listed below:
-										</p>
-										<ul class="space-y-2 ml-4 list-disc">
-											<li>
-												<strong class="text-gray-300">FFmpeg</strong> - Licensed under 
-												<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GPL v3</a> 
-												and <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">LGPL v3</a>. 
-												FFmpeg is used via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">ffmpeg.wasm</a> 
-												(MIT License).
-											</li>
-											<li>
-												<strong class="text-gray-300">Svelte & SvelteKit</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
-											</li>
-											<li>
-												<strong class="text-gray-300">TailwindCSS</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
-											</li>
-											<li>
-												<strong class="text-gray-300">Vite</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
-											</li>
-											<li>
-												<strong class="text-gray-300">TypeScript</strong> - Licensed under 
-												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">Apache License 2.0</a>.
-											</li>
-											<li>
-												<strong class="text-gray-300">Playwright</strong> - Licensed under 
-												<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">Apache License 2.0</a>.
-											</li>
-											<li>
-												<strong class="text-gray-300">Vitest</strong> - Licensed under 
-												<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
-											</li>
-											<li>
-												<strong class="text-gray-300">GoatCounter</strong> - Privacy-friendly web analytics. 
-												See <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter.com</a> 
-												and <a href="https://github.com/arp242/goatcounter" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub repository</a> for license information.
-											</li>
-										</ul>
-										<p class="mt-4 text-gray-500 italic">
-											For complete license information, please refer to the LICENSE files in each library's repository or the node_modules directory.
-										</p>
-									</div>
-
-									<div class="border-t border-gray-600 pt-4">
-										<p class="text-gray-400">
-											Page available on <a href="https://vs.samma.no" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">vs.samma.no</a> and <a href="https://video.shaper.samma.no" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">video.shaper.samma.no</a>.
-										</p>
-										<p class="text-gray-400 mt-2">
-											Source code available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
-										</p>
-									</div>
-								</div>
-							</div>
-						{/if}
-					</div>
-			{:else}
-				<!-- Load FFmpeg silently in background when file is selected -->
-				<FFmpegLoader onReady={handleFFmpegReady} onError={handleFFmpegError} onLoadingChange={handleFFmpegLoadingChange} silent={true} />
-
-				<!-- Show editor immediately when file is selected -->
-				<div class="space-y-4 sm:space-y-6">
-							<VideoPreview
-								bind:this={videoPreviewComponent}
-								videoFile={selectedFile}
-								onDurationLoad={handleDurationLoad}
-								onVideoMetadataLoad={handleVideoMetadataLoad}
-								{cropEnabled}
-								{cropX}
-								{cropY}
-								{cropWidth}
-								{cropHeight}
-								{aspectRatioLocked}
-								onCropChange={handleCropChange}
-							/>
-
-							<TrimControls
-								bind:trimEnabled
-								duration={videoDuration}
-								bind:startTime
-								bind:endTime
-								disabled={processing}
-								onTrimToggle={(enabled) => (trimEnabled = enabled)}
-								onStartChange={(time) => (startTime = time)}
-								onEndChange={(time) => (endTime = time)}
-								onSeek={seekVideo}
-							/>
-
-							<CropControls
-								bind:cropEnabled
-								bind:aspectRatioLocked
-								disabled={processing}
-								cropWidth={cropWidth}
-								cropHeight={cropHeight}
-								onCropToggle={handleCropToggle}
-								onAspectRatioLockToggle={handleAspectRatioLockToggle}
-								onPresetSelect={handlePresetSelect}
-							/>
-
-							<CompressionControls
-								bind:compressionEnabled
-								bind:crf
-								disabled={processing}
-								onCompressionToggle={(enabled) => {
-									compressionEnabled = enabled;
-									processingWarning = ''; // Clear warning when compression is toggled
-								}}
-								onCrfChange={(value) => (crf = value)}
-							/>
-
-							<FormatControls
-								bind:formatConversionEnabled
-								bind:outputFormat
-								{inputFormat}
-								disabled={processing}
-								onFormatConversionToggle={(enabled) => {
-									formatConversionEnabled = enabled;
-								}}
-								onOutputFormatChange={(format) => {
-									outputFormat = format;
-								}}
-							/>
-
-							<ResolutionControls
-								bind:resolutionScalingEnabled
-								bind:resolutionScale
-								bind:targetResolution
-								originalWidth={cropEnabled && cropWidth > 0 ? cropWidth : videoWidth}
-								originalHeight={cropEnabled && cropHeight > 0 ? cropHeight : videoHeight}
-								disabled={processing}
-								onResolutionScalingToggle={(enabled) => {
-									resolutionScalingEnabled = enabled;
-								}}
-								onResolutionScaleChange={(scale) => {
-									resolutionScale = scale;
-								}}
-								onTargetResolutionChange={(preset) => {
-									targetResolution = preset;
-								}}
-							/>
-
-							<AudioControls
-								bind:audioAdjustmentEnabled
-								bind:volume={audioVolume}
-								disabled={processing}
-								onAudioAdjustmentToggle={(enabled) => {
-									audioAdjustmentEnabled = enabled;
-								}}
-								onVolumeChange={(vol) => {
-									audioVolume = vol;
-								}}
-							/>
-
-							{#if estimatedSize > 0}
-								<div class="bg-gray-700 rounded-lg p-3 sm:p-4">
-									<div class="flex items-center justify-between">
-										<span class="text-gray-300 text-sm sm:text-base">Estimated Output Size:</span>
-										<span class="text-teal-400 font-semibold text-base sm:text-lg">
-											~{formatFileSizeMB(estimatedSize)}
-										</span>
-									</div>
-									{#if selectedFile}
-										<div class="mt-2 text-xs sm:text-sm text-gray-400">
-											Original: {formatFileSizeMB(selectedFile.size)} • 
-											Reduction: {Math.round((1 - estimatedSize / selectedFile.size) * 100)}%
-										</div>
-									{/if}
-								</div>
-							{/if}
-
-							{#if processingWarning}
-								<div class="bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 sm:p-4 mb-4">
-									<div class="flex items-start gap-3">
-										<svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-										</svg>
-										<div class="flex-1">
-											<p class="text-yellow-200 font-semibold text-sm sm:text-base mb-1">Warning</p>
-											<p class="text-yellow-300 text-xs sm:text-sm">{processingWarning}</p>
-										</div>
-									<button
-										on:click={handleDismissWarning}
-										class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0 flex items-center gap-1.5"
-										aria-label="Hide warning"
-									>
-										<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-										</svg>
-										<span>Hide</span>
-									</button>
-									</div>
-								</div>
-							{/if}
-
-							<ProcessButton
-								onProcess={handleProcess}
-								onCancel={handleCancel}
-								{processing}
-								progress={processingProgress}
-								status={processingStatus}
-								disabled={videoDuration === 0}
-							/>
-
-							{#if processingError}
-								<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
-									<p class="text-red-200 font-semibold text-sm sm:text-base">Error</p>
-									<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
-								</div>
-							{/if}
-
-							{#if downloadSuccessMessage}
-								<div class="bg-green-900/50 border border-green-700 rounded-lg p-3 sm:p-4">
-									<div class="flex items-start gap-3">
-										<svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-										</svg>
-										<div class="flex-1">
-											<p class="text-green-200 font-semibold text-sm sm:text-base mb-1">Download Complete</p>
-											<p class="text-green-300 text-xs sm:text-sm">{downloadSuccessMessage}</p>
-										</div>
-										<button
-											on:click={handleDismissSuccess}
-											class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm font-semibold rounded transition-colors flex-shrink-0 flex items-center gap-1.5"
-											aria-label="Hide success message"
-										>
-											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-											</svg>
-											<span>Hide</span>
-										</button>
-									</div>
-								</div>
-							{/if}
-
-							<!-- File info card at bottom -->
-							<div class="bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-600">
-								<div class="flex items-center justify-between">
-									<div class="min-w-0 flex-1">
-										<p class="text-xs sm:text-sm text-gray-400 mb-1">Current video</p>
-										<p class="text-sm sm:text-base text-gray-300 truncate" title={selectedFile?.name}>
-											{selectedFile?.name}
-										</p>
-									</div>
-									<button
-										on:click={goBack}
-										class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap flex items-center gap-1.5"
-										disabled={processing}
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-										</svg>
-										<span>Edit another video</span>
-									</button>
-								</div>
-							</div>
 						</div>
 
-				{#if ffmpegError}
-					<div class="mt-4 bg-red-900/50 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
-						<p class="text-red-200 font-semibold text-sm sm:text-base mb-1">Failed to Load Video Processor</p>
-						<p class="text-red-300 text-xs sm:text-sm">{ffmpegError}</p>
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">What video formats are supported?</h3>
+							<p class="text-gray-400">
+								Video Shaper supports common video formats including MP4, MOV, AVI, MKV, FLV, and more. 
+								The app uses ffmpeg.wasm which supports most video codecs. For best compatibility, MP4 files are recommended. 
+								You can also convert videos between different formats using the format conversion feature.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Can I convert videos to different formats?</h3>
+							<p class="text-gray-400">
+								Yes! Video Shaper includes a format conversion feature that allows you to convert videos between different formats. 
+								You can convert to MP4, MOV, AVI, MKV, or FLV formats. Format conversion requires re-encoding the video, 
+								which may take longer than preserving the original format, but it's useful when you need a specific format for compatibility.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Can I reduce video resolution to save space?</h3>
+							<p class="text-gray-400">
+								Yes! Video Shaper includes a resolution scaling feature that allows you to reduce (or increase) video resolution while maintaining the aspect ratio. 
+								Reducing resolution significantly decreases file size - for example, reducing to 50% resolution (half width and height) results in approximately 25% of the original file size. 
+								You can use the percentage slider for custom scaling or select from preset resolutions like 1080p, 720p, 480p, etc. 
+								This is especially useful for creating smaller files for sharing or storage while maintaining acceptable quality.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Can I adjust the audio volume in videos?</h3>
+							<p class="text-gray-400">
+								Yes! Video Shaper includes an audio control feature that allows you to adjust the volume level from 0% to 200%. 
+								You can reduce volume (e.g., 50%), keep it at the original level (100%), or boost it (up to 200%). 
+								Setting volume to 0% completely removes the audio track, which is useful for creating silent videos or removing unwanted background noise. 
+								Removing audio also slightly reduces the file size.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Why can't I view videos directly on iPhone/iPad Safari?</h3>
+							<p class="text-gray-400">
+								iOS Safari has limitations with playing videos directly from blob URLs (temporary browser URLs). When you try to "view" a processed video in Safari, it may not play properly. 
+								This is a known Safari limitation, not an issue with Video Shaper. <strong class="text-teal-400">The solution is to download the video</strong> - tap the download icon (↓) in Safari's address bar after processing, 
+								or find the file in the Files app under Downloads. Downloaded videos play perfectly in the Photos app, Files app, or any video player on your device.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Why is processing slow?</h3>
+							<p class="text-gray-400">
+								Video processing runs entirely in your browser using WebAssembly, which is 3-5x slower than native video editors. 
+								This is the trade-off for complete privacy - your videos never leave your device. For faster processing, 
+								trim to shorter segments (under 10 seconds) and avoid compression when possible.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">What are the file size limits?</h3>
+							<p class="text-gray-400">
+								Large videos (>100MB) may cause memory issues, especially with compression enabled. 
+								Very large output files (>20MB) may fail to download due to browser memory limits. 
+								For best results, keep trimmed segments under 10 seconds when using compression, or disable compression for larger files.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Is my video data private?</h3>
+							<p class="text-gray-400">
+								Yes! All processing happens entirely in your browser. Videos never leave your computer and are never uploaded to any server. 
+								The app downloads ffmpeg.wasm (~31MB) on first visit, but this is cached for future use.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">What is tracked?</h3>
+							<p class="text-gray-400">
+								This site uses <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter</a>, 
+								a privacy-friendly analytics service, to simply count how many people visit the page. GoatCounter does not track personal data, 
+								does not use cookies for tracking, and does not create unique user identifiers. It only collects basic page view statistics 
+								(such as page paths, referrers, and browser information) to help understand site usage. No video data or personal information is tracked.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Why does compression sometimes fail?</h3>
+							<p class="text-gray-400">
+								Compression requires significant browser memory. Very large videos or high-resolution files (like 4K) can exceed browser memory limits. 
+								If compression fails, try: trimming to a shorter segment, using higher compression (move slider left), or disabling compression entirely. 
+								The app will show helpful error messages if issues occur.
+							</p>
+						</div>
+
+						<div class="text-gray-300">
+							<h3 class="font-semibold text-gray-200 mb-1">Why is there a 30MB download when I select a video?</h3>
+							<p class="text-gray-400">
+								Video Shaper uses FFmpeg, a powerful video processing library, to handle all video operations (trimming, cropping, compression). 
+								FFmpeg is compiled to WebAssembly (WASM) format so it can run entirely in your browser - this is what enables 100% client-side processing with no uploads. 
+								The ~30MB download contains the FFmpeg WebAssembly binary and starts automatically when you select a video. 
+								The download happens silently in the background, so you can start editing immediately while it loads. 
+								If you click "Process Video" before the download completes, the app will wait for it to finish. 
+								Your browser caches this file, so subsequent visits won't require re-downloading. The download only happens after you select a video, not when you first visit the page, 
+								so you can explore the site without any downloads.
+							</p>
+						</div>
 					</div>
-				{/if}
+				</div>
+			{/if}
+		</div>
+
+		<!-- Disclaimer Card (Collapsible) -->
+		<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
+			<button
+				on:click={() => (disclaimerExpanded = !disclaimerExpanded)}
+				class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between text-left hover:bg-gray-600 transition-colors"
+				aria-expanded={disclaimerExpanded}
+				aria-controls="disclaimer-content"
+			>
+				<h2 class="text-base sm:text-lg font-semibold text-gray-200">Disclaimer</h2>
+				<svg
+					class="w-5 h-5 text-gray-400 transition-transform {disclaimerExpanded ? 'rotate-180' : ''}"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+			
+			{#if disclaimerExpanded}
+				<div id="disclaimer-content" class="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
+					<div class="text-xs sm:text-sm text-gray-400 leading-relaxed space-y-4">
+						<div>
+							<p>
+								This service is provided "as is" without warranty of any kind. 
+								Video Shaper processes videos entirely in your browser and does not guarantee successful processing for all video formats or sizes. 
+								Users are responsible for backing up their original files. The developers are not liable for any data loss, corruption, or other issues 
+								that may occur during video processing. Use at your own risk.
+							</p>
+							<p class="mt-3 text-gray-500 italic">
+								This project was coded 100% with Cursor using the Composer 1 model.
+							</p>
+						</div>
+
+						<div class="border-t border-gray-600 pt-4 mb-4">
+							<h3 class="font-semibold text-gray-300 mb-3">Project License</h3>
+							<p class="text-gray-400">
+								Video Shaper is free software licensed under the 
+								<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GNU General Public License v3.0</a> 
+								or later. You are free to use, modify, and distribute this software under the terms of the GPL.
+								Source code is available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
+							</p>
+						</div>
+
+						<div class="border-t border-gray-600 pt-4">
+							<h3 class="font-semibold text-gray-300 mb-3">Third-Party Licenses</h3>
+							<p class="mb-3">
+								Video Shaper uses the following open-source libraries and tools. Their respective licenses are listed below:
+							</p>
+							<ul class="space-y-2 ml-4 list-disc">
+								<li>
+									<strong class="text-gray-300">FFmpeg</strong> - Licensed under 
+									<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GPL v3</a> 
+									and <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">LGPL v3</a>. 
+									FFmpeg is used via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">ffmpeg.wasm</a> 
+									(MIT License).
+								</li>
+								<li>
+									<strong class="text-gray-300">Svelte & SvelteKit</strong> - Licensed under 
+									<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
+								</li>
+								<li>
+									<strong class="text-gray-300">TailwindCSS</strong> - Licensed under 
+									<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
+								</li>
+								<li>
+									<strong class="text-gray-300">Vite</strong> - Licensed under 
+									<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
+								</li>
+								<li>
+									<strong class="text-gray-300">TypeScript</strong> - Licensed under 
+									<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">Apache License 2.0</a>.
+								</li>
+								<li>
+									<strong class="text-gray-300">Playwright</strong> - Licensed under 
+									<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">Apache License 2.0</a>.
+								</li>
+								<li>
+									<strong class="text-gray-300">Vitest</strong> - Licensed under 
+									<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">MIT License</a>.
+								</li>
+								<li>
+									<strong class="text-gray-300">GoatCounter</strong> - Privacy-friendly web analytics. 
+									See <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter.com</a> 
+									and <a href="https://github.com/arp242/goatcounter" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub repository</a> for license information.
+								</li>
+							</ul>
+							<p class="mt-4 text-gray-500 italic">
+								For complete license information, please refer to the LICENSE files in each library's repository or the node_modules directory.
+							</p>
+						</div>
+
+						<div class="border-t border-gray-600 pt-4">
+							<p class="text-gray-400">
+								Page available on <a href="https://vs.samma.no" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">vs.samma.no</a> and <a href="https://video.shaper.samma.no" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">video.shaper.samma.no</a>.
+							</p>
+							<p class="text-gray-400 mt-2">
+								Source code available on <a href="https://github.com/samma/video-shaper" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GitHub</a>.
+							</p>
+						</div>
+					</div>
+				</div>
 			{/if}
 		</div>
 	</main>
