@@ -51,7 +51,6 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			'Compress your videos directly in your browser without uploading to any server. Adjust compression settings to find the perfect balance between file size and quality. See the estimated output size before processing, and download your compressed video instantly.',
 		primaryFeature: 'compress',
 		defaultFeatures: {
-			trim: true,
 			compress: true
 		},
 		faqs: [
@@ -90,7 +89,6 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			'Crop your videos to any size or aspect ratio directly in your browser. Remove unwanted borders, adjust the frame, or prepare videos for different platforms like Instagram, TikTok, or YouTube. Visual crop controls make it easy to select exactly the area you want.',
 		primaryFeature: 'crop',
 		defaultFeatures: {
-			trim: true,
 			crop: true
 		},
 		faqs: [
@@ -129,7 +127,6 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			'Convert your videos between popular formats including MP4, MOV, AVI, MKV, and FLV - all in your browser without uploading. Perfect for compatibility issues or when you need a specific format for editing, sharing, or playback.',
 		primaryFeature: 'convert',
 		defaultFeatures: {
-			trim: true,
 			formatConversion: true
 		},
 		faqs: [
@@ -168,7 +165,6 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			"Need to make your video smaller? Use compression to reduce quality slightly, or reduce resolution to shrink dimensions - or both for maximum size reduction. See the estimated file size before processing, so you know exactly what you'll get.",
 		primaryFeature: 'resize',
 		defaultFeatures: {
-			trim: true,
 			compress: true,
 			resolutionScaling: true
 		},
@@ -208,7 +204,6 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			"Need a smaller video file? You're in the right place. Upload your video and use our simple tools to reduce the file size. Compress quality, reduce resolution, or both - and see the estimated size before you download. Everything happens in your browser, so your video stays private.",
 		primaryFeature: 'resize',
 		defaultFeatures: {
-			trim: true,
 			compress: true,
 			resolutionScaling: true
 		},
@@ -248,7 +243,6 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			"Can't send that video because it's too large? We can help. Upload your video here and use our compression and resize tools to shrink it down. Whether you need to fit an email attachment, send via WhatsApp, or upload to a website with size limits - we've got you covered. And your video never leaves your device.",
 		primaryFeature: 'resize',
 		defaultFeatures: {
-			trim: true,
 			compress: true,
 			resolutionScaling: true
 		},
@@ -287,9 +281,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		introParagraph:
 			"Worried about uploading personal videos to online editors? With Video Shaper, you don't have to. Every edit - trimming, cropping, compressing, converting - happens entirely in your browser. Your videos are never uploaded to any server, never stored in any cloud, and never seen by anyone but you.",
 		primaryFeature: 'privacy',
-		defaultFeatures: {
-			trim: true
-		},
+		defaultFeatures: {},
 		faqs: [
 			{
 				question: 'How can video editing work without uploading?',

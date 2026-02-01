@@ -21,7 +21,7 @@
 		formatConversion?: boolean;
 		resolutionScaling?: boolean;
 		audioAdjustment?: boolean;
-	} = { trim: true };
+	} = {};
 
 	export let showInfoCard: boolean = true;
 	export let showBackButton: boolean = true;
@@ -40,8 +40,8 @@
 	let endTime: number = 0;
 	let videoPreviewComponent: any = null;
 
-	// Trim state - use default from props
-	let trimEnabled: boolean = defaultFeatures.trim ?? true;
+	// Trim state - use default from props (defaults to false)
+	let trimEnabled: boolean = defaultFeatures.trim ?? false;
 
 	// Compression state - use default from props
 	let compressionEnabled: boolean = defaultFeatures.compress ?? false;
@@ -246,8 +246,8 @@
 		// Reset trim times
 		startTime = 0;
 		endTime = 0;
-		// Apply default features
-		trimEnabled = defaultFeatures.trim ?? true;
+		// Apply default features (trim defaults to false unless specified)
+		trimEnabled = defaultFeatures.trim ?? false;
 		compressionEnabled = defaultFeatures.compress ?? false;
 		cropEnabled = defaultFeatures.crop ?? false;
 		formatConversionEnabled = defaultFeatures.formatConversion ?? false;
