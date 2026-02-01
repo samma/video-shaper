@@ -8,6 +8,7 @@ export interface LandingPageConfig {
 	slug: string;
 	title: string;
 	metaDescription: string;
+	keywords: string;
 	canonicalPath: string;
 
 	// Content

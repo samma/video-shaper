@@ -19,6 +19,8 @@
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://video.shaper.samma.no" />
 	<meta property="og:image" content="https://video.shaper.samma.no/og-image.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
 	<meta property="og:image:alt" content="Free Video Shaper - Browser-based video editor interface" />
 	<meta property="og:site_name" content="Video Shaper" />
 	<meta property="og:locale" content="en_US" />

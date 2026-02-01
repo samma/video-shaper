@@ -6,6 +6,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Free Online Video Trimmer - No Upload Required | Video Shaper',
 		metaDescription:
 			'Trim and cut videos online for free without uploading. Select exact timestamps, preview cuts instantly. 100% private - videos never leave your device.',
+		keywords: 'trim video online, cut video online, video trimmer, free video cutter, trim video without upload, online video trimmer, video clip cutter, shorten video online, private video trimmer',
 		canonicalPath: '/trim-video-online',
 		h1: 'Free Online Video Trimmer',
 		tagline: 'Cut videos to exact timestamps - no upload, 100% private',
@@ -44,6 +45,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Compress Video Online Free - No Upload Required | Video Shaper',
 		metaDescription:
 			'Reduce video file size online for free without uploading. Adjustable quality settings, instant preview. 100% private - videos never leave your device.',
+		keywords: 'compress video online, video compressor, reduce video size, shrink video file, free video compression, compress video without upload, video file reducer, online video compressor',
 		canonicalPath: '/compress-video-online',
 		h1: 'Free Online Video Compressor',
 		tagline: 'Reduce video file size - no upload, 100% private',
@@ -82,6 +84,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Crop Video Online Free - No Upload Required | Video Shaper',
 		metaDescription:
 			'Crop and resize video frame online for free without uploading. Adjust aspect ratio, remove borders. 100% private - videos never leave your device.',
+		keywords: 'crop video online, video cropper, resize video frame, change aspect ratio, crop video for instagram, crop video for tiktok, free video cropper, crop video without upload',
 		canonicalPath: '/crop-video-online',
 		h1: 'Free Online Video Cropper',
 		tagline: 'Crop and resize video frames - no upload, 100% private',
@@ -120,6 +123,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Convert Video Format Online Free - No Upload | Video Shaper',
 		metaDescription:
 			'Convert videos between MP4, MOV, AVI, MKV, FLV formats online for free without uploading. 100% private - videos never leave your device.',
+		keywords: 'convert video format, video converter online, mp4 converter, mov to mp4, avi to mp4, mkv converter, free video converter, convert video without upload, change video format',
 		canonicalPath: '/convert-video-format',
 		h1: 'Free Online Video Converter',
 		tagline: 'Convert between video formats - no upload, 100% private',
@@ -158,6 +162,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Reduce Video File Size Online Free - No Upload | Video Shaper',
 		metaDescription:
 			'Reduce video file size online for free without uploading. Compression and resolution options. 100% private - videos never leave your device.',
+		keywords: 'reduce video size, shrink video file, make video smaller, reduce video file size, compress video for email, video size reducer, free video reducer, reduce video without upload',
 		canonicalPath: '/reduce-video-size',
 		h1: 'Reduce Video File Size Online',
 		tagline: 'Shrink video files quickly - no upload, 100% private',
@@ -197,6 +202,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Make Video Smaller Online Free - No Upload | Video Shaper',
 		metaDescription:
 			'Make your video file smaller online for free without uploading. Easy compression and resize tools. 100% private - videos never leave your device.',
+		keywords: 'make video smaller, smaller video file, shrink video, video too large, reduce video mb, compress video size, make video file smaller, video shrink online',
 		canonicalPath: '/smaller-video',
 		h1: 'Make Video Smaller',
 		tagline: 'Quickly shrink your video file - no upload required',
@@ -236,6 +242,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: "Video Too Big? Shrink It Free Online - No Upload | Video Shaper",
 		metaDescription:
 			"Video file too large to send or upload? Reduce it for free without uploading to any server. 100% private - videos never leave your device.",
+		keywords: 'video too big, video file too large, video too big for email, video too big for whatsapp, video too big for discord, shrink large video, reduce big video file, compress large video',
 		canonicalPath: '/video-too-big',
 		h1: 'Video Too Big?',
 		tagline: "Shrink your video to fit any size limit - free and private",
@@ -275,6 +282,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		title: 'Private Video Editor - Edit Without Uploading | Video Shaper',
 		metaDescription:
 			'Edit videos with complete privacy - no uploads, no servers. Trim, crop, compress, convert all in your browser. Videos never leave your device.',
+		keywords: 'private video editor, no upload video editor, offline video editor, secure video editor, browser video editor, local video processing, video editor no server, confidential video editing',
 		canonicalPath: '/private-video-editor',
 		h1: 'Private Video Editor',
 		tagline: 'Edit videos with complete privacy - nothing leaves your device',
