@@ -17,7 +17,7 @@
 	<meta property="og:title" content="Free Video Shaper - No Upload Required | Client-Side Editor" />
 	<meta property="og:description" content="Free browser video editor: trim, crop, compress, convert formats, scale resolution, adjust audio. Videos never leave your device - 100% private." />
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://video.shaper.samma.no" />
+	<meta property="og:url" content="https://video.shaper.samma.no/" />
 	<meta property="og:image" content="https://video.shaper.samma.no/og-image.png" />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
@@ -34,7 +34,7 @@
 	<!-- Additional SEO -->
 	<meta name="robots" content="index, follow" />
 	<meta name="author" content="Video Shaper" />
-	<link rel="canonical" href="https://video.shaper.samma.no" />
+	<link rel="canonical" href="https://video.shaper.samma.no/" />
 	
 	<!-- Structured Data -->
 	{@html `<script type="application/ld+json">
