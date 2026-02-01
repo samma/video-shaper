@@ -8,6 +8,62 @@
 	let disclaimerExpanded: boolean = false;
 </script>
 
+<svelte:head>
+	<title>Free Video Shaper - No Upload Required | Client-Side Editor</title>
+	<meta name="description" content="Free browser video editor: trim, crop, compress, convert formats, scale resolution, adjust audio. No uploads - 100% private." />
+	<meta name="keywords" content="free video editor, online video editor, trim video, crop video, compress video, convert video format, resize video, scale video resolution, mute video, remove audio, adjust volume, video trimmer, video cropper, video converter, browser video editor, client-side video editor, no upload video editor, private video editor" />
+	
+	<!-- Open Graph -->
+	<meta property="og:title" content="Free Video Shaper - No Upload Required | Client-Side Editor" />
+	<meta property="og:description" content="Free browser video editor: trim, crop, compress, convert formats, scale resolution, adjust audio. Videos never leave your device - 100% private." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://video.shaper.samma.no" />
+	<meta property="og:image" content="https://video.shaper.samma.no/og-image.png" />
+	<meta property="og:image:alt" content="Free Video Shaper - Browser-based video editor interface" />
+	<meta property="og:site_name" content="Video Shaper" />
+	<meta property="og:locale" content="en_US" />
+	
+	<!-- Twitter Card -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="Free Video Shaper - No Upload Required" />
+	<meta name="twitter:description" content="Free browser video editor: trim, crop, compress, convert formats, scale resolution, adjust audio. Videos never leave your device - 100% private." />
+	<meta name="twitter:image" content="https://video.shaper.samma.no/og-image.png" />
+	
+	<!-- Additional SEO -->
+	<meta name="robots" content="index, follow" />
+	<meta name="author" content="Video Shaper" />
+	<link rel="canonical" href="https://video.shaper.samma.no" />
+	
+	<!-- Structured Data -->
+	{@html `<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "WebApplication",
+		"name": "Video Shaper",
+		"description": "Free browser video editor: trim, crop, compress, convert formats, scale resolution, adjust audio. Videos never leave your device - 100% client-side processing.",
+		"url": "https://video.shaper.samma.no",
+		"applicationCategory": "MultimediaApplication",
+		"operatingSystem": "Web Browser",
+		"offers": {
+			"@type": "Offer",
+			"price": "0",
+			"priceCurrency": "USD"
+		},
+		"featureList": [
+			"Trim Videos",
+			"Crop Videos",
+			"Compress Videos",
+			"Convert Video Formats",
+			"Scale Video Resolution",
+			"Adjust Audio Volume",
+			"100% Client-Side Processing",
+			"No Uploads Required",
+			"Privacy-First"
+		]
+	}
+	</script>`}
+</svelte:head>
+
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
 		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
