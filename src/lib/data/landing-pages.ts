@@ -315,6 +315,11 @@ export const landingPages: Record<string, LandingPageConfig> = {
 				question: 'Does this work offline?',
 				answer:
 					'Once the application is loaded and cached (including the FFmpeg binary), you can process videos without an internet connection. This is another benefit of client-side processing - no server means no internet required for the actual video editing.'
+			},
+			{
+				question: 'What happens if processing fails? Is any data sent?',
+				answer:
+					'If an error occurs during processing, you will be shown exactly what data would be sent and asked for your explicit consent before anything is transmitted. The error report contains only broad, non-identifying categories: error type (e.g. "memory"), which features were used, video format, an approximate file size range (e.g. "50-100MB"), approximate duration range, and browser family. No filenames, exact file sizes, video content, or personal information is ever included. You can see the exact data and choose to decline — nothing is sent without your approval.'
 			}
 		]
 	}

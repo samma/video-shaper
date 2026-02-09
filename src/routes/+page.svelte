@@ -191,9 +191,14 @@
 							<h3 class="font-semibold text-gray-200 mb-1">What is tracked?</h3>
 							<p class="text-gray-400">
 								This site uses <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">GoatCounter</a>, 
-								a privacy-friendly analytics service, to simply count how many people visit the page and how many videos are processed successfully or unsuccessfully. GoatCounter does not track personal data, 
-								does not use cookies for tracking, and does not create unique user identifiers. It only collects basic page view statistics 
-								(such as page paths, referrers, and browser information) and anonymous success/failure counts to help understand site usage. No video data or personal information is tracked.
+								a privacy-friendly analytics service. GoatCounter does not track personal data, 
+								does not use cookies for tracking, and does not create unique user identifiers. It collects basic page view statistics 
+								(such as page paths, referrers, and browser information). When a video is processed successfully, we record which features were used (e.g. trim, compress), 
+								the video format (e.g. MP4), a coarse file size range (e.g. "50-100MB"), and a coarse duration range (e.g. "1-3min"). 
+								If processing fails, you will be shown exactly what data would be sent and asked for your explicit consent before any error report is transmitted. 
+								Error reports include only the error category (e.g. "memory"), features used, format, approximate size/duration range, and browser family. 
+								All values are bucketed into broad ranges — no exact file sizes, durations, filenames, 
+								or video content is ever collected.
 							</p>
 						</div>
 

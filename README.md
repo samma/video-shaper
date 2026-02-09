@@ -14,6 +14,7 @@ A client-side video editor that runs entirely in your browser. Trim, crop, compr
 - **Adjust Audio** - Change audio volume levels (0-200%)
 - **Simple Interface** - Easy-to-use controls with video preview
 - **Privacy-First** - No uploads, no transfers, complete privacy
+- **Consent-Based Error Reporting** - If processing fails, users see the exact data before choosing to send an anonymous report
 
 ## Tech Stack
 
@@ -77,6 +78,23 @@ The app will automatically deploy on every push to your main branch.
 - Large files (>500MB) may cause memory issues
 - Processing is slower than native ffmpeg (3-5x)
 - Initial load downloads ~31MB (ffmpeg.wasm)
+
+## Analytics & Error Reporting
+
+Video Shaper uses [GoatCounter](https://www.goatcounter.com/), a privacy-friendly analytics service. GoatCounter does not use cookies, does not track personal data, and does not create user identifiers.
+
+**Success events** are sent automatically and include only bucketed metadata: features used, video format, approximate file size range, and approximate duration range.
+
+**Error reports** require explicit user consent. When processing fails, users are shown the exact data that would be sent and must click a button to approve it. Error reports include only:
+- Error category (e.g. `memory`, `filesystem`, `abort`, `unknown`)
+- Features enabled (e.g. `compress+trim`)
+- Video format (e.g. `mp4`)
+- File size bucket (e.g. `50-100MB`)
+- Duration bucket (e.g. `1-3min`)
+- Browser family (e.g. `Chrome`)
+- OS family (e.g. `Windows`)
+
+No filenames, exact file sizes, video content, or personal information is ever collected. The implementation is in `src/lib/utils/error-analytics.ts`.
 
 ## License
 

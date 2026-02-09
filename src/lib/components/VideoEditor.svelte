@@ -12,6 +12,7 @@
 	import ProcessButton from './ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
+	import { buildErrorEventPath, buildSuccessEventPath, trackEvent, type ProcessingContext } from '$lib/utils/error-analytics';
 
 	// Props for customization
 	export let defaultFeatures: {
@@ -78,6 +79,11 @@
 	let processingError: string = '';
 	let processingWarning: string = '';
 	let downloadSuccessMessage: string = '';
+	let cancelRequested: boolean = false;
+	
+	// Error report consent state
+	let pendingErrorReport: string | null = null; // the GoatCounter event path, held until user consents
+	let errorReportSent: boolean = false;
 	
 	// Initial delay timeout for status message
 	let initialDelayTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -156,6 +162,8 @@
 	}
 
 	async function handleCancel() {
+		cancelRequested = true;
+		
 		if (initialDelayTimeout !== null) {
 			clearTimeout(initialDelayTimeout);
 			initialDelayTimeout = null;
@@ -167,8 +175,18 @@
 		processing = false;
 		processingProgress = 0;
 		processingStatus = '';
-		processingError = 'Operation cancelled';
+		processingError = '';
 		processingWarning = '';
+		pendingErrorReport = null;
+		errorReportSent = false;
+	}
+
+	function handleSendErrorReport() {
+		if (pendingErrorReport) {
+			trackEvent(pendingErrorReport);
+			errorReportSent = true;
+			pendingErrorReport = null;
+		}
 	}
 
 	function handleDismissWarning() {
@@ -384,6 +402,9 @@
 		if (!selectedFile) return;
 
 		processingError = '';
+		pendingErrorReport = null;
+		errorReportSent = false;
+		cancelRequested = false;
 		downloadSuccessMessage = '';
 		processing = true;
 		processingProgress = 0;
@@ -440,6 +461,11 @@
 		}, 2000);
 
 		try {
+			// Test hook: add ?testerror=true to the URL to simulate a processing error
+			if (typeof window !== 'undefined' && window.location.search.includes('testerror=true')) {
+				throw new Error('Simulated processing error for testing');
+			}
+
 			ffmpegService.onStatus((status) => {
 				processingStatus = status;
 				if (initialDelayTimeout !== null) {
@@ -536,13 +562,22 @@
 			processingProgress = 1;
 			processingStatus = 'Complete';
 			
-			// Track successful video processing (anonymous aggregate count only)
-			if (typeof window !== 'undefined' && (window as any).goatcounter?.count) {
-				(window as any).goatcounter.count({
-					path: 'video-process-success',
-					event: true
-				});
-			}
+			// Track successful video processing (privacy-safe bucketed metadata only)
+			const successContext: ProcessingContext = {
+				features: {
+					trim: trimEnabled,
+					compress: compressionEnabled,
+					crop: cropEnabled,
+					formatConversion: formatConversionEnabled && outputFormat !== inputFormat,
+					resolutionScaling: resolutionScalingEnabled,
+					audioAdjustment: audioAdjustmentEnabled && audioVolume !== 100
+				},
+				inputFormat,
+				outputFormat: formatConversionEnabled ? outputFormat : inputFormat,
+				fileSizeBytes: selectedFile.size,
+				durationSeconds: trimEnabled ? (endTime - startTime) : videoDuration
+			};
+			trackEvent(buildSuccessEventPath(successContext));
 			
 			if (isIOS()) {
 				downloadSuccessMessage = 'Video downloaded! On iPhone/iPad: Tap the download icon (↓) in Safari\'s address bar to view, or find it in Files app > Downloads folder.';
@@ -554,21 +589,34 @@
 				downloadSuccessMessage = '';
 			}, 12000);
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
-			if (!errorMessage.includes('cancelled')) {
+			// If the user requested cancellation, ignore the error entirely
+			if (cancelRequested) {
+				processingError = '';
+				pendingErrorReport = null;
+				errorReportSent = false;
+			} else {
+				const errorMessage = error instanceof Error ? error.message : 'Failed to process video';
 				processingError = errorMessage;
 				
-				// Track failed video processing (anonymous aggregate count only)
-				if (typeof window !== 'undefined' && (window as any).goatcounter?.count) {
-					(window as any).goatcounter.count({
-						path: 'video-process-error',
-						event: true
-					});
-				}
-			} else {
-				processingError = '';
+				// Prepare error report but do NOT send it yet — wait for user consent
+				const errorContext: ProcessingContext = {
+					features: {
+						trim: trimEnabled,
+						compress: compressionEnabled,
+						crop: cropEnabled,
+						formatConversion: formatConversionEnabled && outputFormat !== inputFormat,
+						resolutionScaling: resolutionScalingEnabled,
+						audioAdjustment: audioAdjustmentEnabled && audioVolume !== 100
+					},
+					inputFormat,
+					outputFormat: formatConversionEnabled ? outputFormat : inputFormat,
+					fileSizeBytes: selectedFile?.size ?? 0,
+					durationSeconds: trimEnabled ? (endTime - startTime) : videoDuration
+				};
+				pendingErrorReport = buildErrorEventPath(error instanceof Error ? error : errorMessage, errorContext);
+				errorReportSent = false;
+				console.error('Processing error:', error);
 			}
-			console.error('Processing error:', error);
 		} finally {
 			if (initialDelayTimeout !== null) {
 				clearTimeout(initialDelayTimeout);
@@ -777,9 +825,48 @@
 			/>
 
 			{#if processingError}
-				<div class="bg-red-900 border border-red-700 rounded-lg p-3 sm:p-4 text-center">
-					<p class="text-red-200 font-semibold text-sm sm:text-base">Error</p>
-					<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
+				<div class="bg-red-900/60 border border-red-700 rounded-lg p-4 sm:p-5">
+					<div class="flex items-start gap-3">
+						<svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+						</svg>
+						<div class="flex-1 min-w-0">
+							<p class="text-red-200 font-semibold text-sm sm:text-base">Processing failed</p>
+							<p class="text-red-300 text-xs sm:text-sm mt-1">{processingError}</p>
+							
+							{#if pendingErrorReport}
+								<!-- Consent prompt: only sent if user explicitly agrees -->
+								<div class="mt-3 pt-3 border-t border-red-800/50">
+									<p class="text-gray-300 text-xs sm:text-sm">
+										Would you like to send a brief, anonymous error report to help fix this issue? 
+										Here is exactly what will be sent — nothing more:
+									</p>
+									<code class="block mt-2 px-3 py-2 bg-gray-900/80 border border-gray-700 rounded text-xs text-gray-300 break-all select-all">{pendingErrorReport}</code>
+									<p class="mt-1.5 text-gray-500 text-xs">
+										No filenames, video content, or personal information is included.
+									</p>
+									<button
+										on:click={handleSendErrorReport}
+										class="mt-2 px-4 py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-xs sm:text-sm font-medium rounded transition-colors inline-flex items-center gap-1.5"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+										Send error report
+									</button>
+								</div>
+							{:else if errorReportSent}
+								<div class="mt-3 pt-3 border-t border-red-800/50">
+									<p class="text-teal-400 text-xs sm:text-sm flex items-center gap-1.5">
+										<svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+										</svg>
+										Thank you! Report sent. This helps improve Video Shaper for everyone.
+									</p>
+								</div>
+							{/if}
+						</div>
+					</div>
 				</div>
 			{/if}
 
@@ -818,7 +905,7 @@
 					</div>
 					<button
 						on:click={goBack}
-						class="ml-4 px-3 py-1.5 text-sm border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors whitespace-nowrap flex items-center gap-1.5"
+						class="ml-4 px-3 py-1.5 text-sm rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 bg-teal-700 hover:bg-teal-600 text-white border border-teal-600"
 						disabled={processing}
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

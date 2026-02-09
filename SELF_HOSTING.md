@@ -70,13 +70,20 @@ To update to a newer version of FFmpeg.wasm:
 4. Test thoroughly
 5. Commit and deploy
 
-## GoatCounter Analytics
+## GoatCounter Analytics & Error Reporting
 
 GoatCounter is already non-blocking (async script). If it fails to load, the app continues to work normally. The script includes error handling to prevent any issues.
+
+GoatCounter receives two types of events:
+- **Success events** (automatic) - bucketed metadata: features used, format, approximate size/duration range
+- **Error reports** (consent-based) - only sent when a user explicitly approves after seeing the exact data. Includes error category, features, format, size/duration bucket, and browser/OS family. No filenames, exact sizes, or personal data.
+
+The error analytics logic is in `src/lib/utils/error-analytics.ts`. All values are classified into fixed categories or bucketed into broad ranges to prevent any identifying information from being transmitted.
 
 To completely remove analytics:
 1. Remove the `<script>` tag from `src/app.html`
 2. Remove GoatCounter references from the disclaimer in `src/routes/+page.svelte`
+3. Remove the `trackEvent` calls from `src/lib/components/VideoEditor.svelte`
 
 ## Complete Independence Checklist
 
