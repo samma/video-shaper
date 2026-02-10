@@ -83,7 +83,7 @@ The app will automatically deploy on every push to your main branch.
 
 Video Shaper uses [GoatCounter](https://www.goatcounter.com/), a privacy-friendly analytics service. GoatCounter does not use cookies, does not track personal data, and does not create user identifiers.
 
-**Success events** are sent automatically and include only bucketed metadata: features used, video format, approximate file size range, and approximate duration range.
+**Success events** are sent automatically as a simple count (`video-process-success`) with no metadata about the video, features, or user.
 
 **Error reports** require explicit user consent. When processing fails, users are shown the exact data that would be sent and must click a button to approve it. Error reports include only:
 - Error category (e.g. `memory`, `filesystem`, `abort`, `unknown`)

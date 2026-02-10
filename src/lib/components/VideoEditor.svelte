@@ -12,7 +12,7 @@
 	import ProcessButton from './ProcessButton.svelte';
 	import type { FFmpegService } from '$lib/ffmpeg/FFmpegService';
 	import { estimateOutputFileSize, formatFileSizeMB } from '$lib/utils/file-utils';
-	import { buildErrorEventPath, buildSuccessEventPath, trackEvent, type ProcessingContext } from '$lib/utils/error-analytics';
+	import { buildErrorEventPath, trackEvent, type ProcessingContext } from '$lib/utils/error-analytics';
 
 	// Props for customization
 	export let defaultFeatures: {
@@ -562,22 +562,8 @@
 			processingProgress = 1;
 			processingStatus = 'Complete';
 			
-			// Track successful video processing (privacy-safe bucketed metadata only)
-			const successContext: ProcessingContext = {
-				features: {
-					trim: trimEnabled,
-					compress: compressionEnabled,
-					crop: cropEnabled,
-					formatConversion: formatConversionEnabled && outputFormat !== inputFormat,
-					resolutionScaling: resolutionScalingEnabled,
-					audioAdjustment: audioAdjustmentEnabled && audioVolume !== 100
-				},
-				inputFormat,
-				outputFormat: formatConversionEnabled ? outputFormat : inputFormat,
-				fileSizeBytes: selectedFile.size,
-				durationSeconds: trimEnabled ? (endTime - startTime) : videoDuration
-			};
-			trackEvent(buildSuccessEventPath(successContext));
+			// Track successful video processing (simple count, no metadata)
+			trackEvent('video-process-success');
 			
 			if (isIOS()) {
 				downloadSuccessMessage = 'Video downloaded! On iPhone/iPad: Tap the download icon (↓) in Safari\'s address bar to view, or find it in Files app > Downloads folder.';
