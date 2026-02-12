@@ -20,7 +20,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'How do I trim a video online without uploading?',
 				answer:
-					"Simply select your video file using the file picker above. Video Shaper uses WebAssembly technology to process videos entirely in your browser - your video is never uploaded to any server. Select your start and end times using the timeline slider, then click 'Process Video' to download your trimmed clip."
+					"Select your video with the file picker above. All processing happens in your browser. Set start and end times with the timeline slider, then click 'Process Video' to download."
 			},
 			{
 				question: 'What video formats can I trim?',
@@ -35,7 +35,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'Can I preview my trim selection before processing?',
 				answer:
-					'Yes! Use the timeline slider to set your start and end points, then use the video player to preview exactly what will be included in your trimmed video. The preview updates in real-time as you adjust the trim points.'
+					'Yes. The timeline slider sets start and end points; the video player previews the result in real time as you adjust.'
 			}
 		]
 	},
@@ -50,7 +50,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		h1: 'Free Online Video Compressor',
 		tagline: 'Reduce video file size - no upload, 100% private',
 		introParagraph:
-			'Compress your videos directly in your browser without uploading to any server. Adjust compression settings to find the perfect balance between file size and quality. See the estimated output size before processing, and download your compressed video instantly.',
+			'Compress videos in your browser without uploading. Adjust the quality slider to balance file size and quality. The estimated output size shows before you process.',
 		primaryFeature: 'compress',
 		defaultFeatures: {
 			compress: true
@@ -59,22 +59,22 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'How much can I reduce my video file size?',
 				answer:
-					'Depending on your quality settings and the original video, you can typically reduce file size by 50-90%. Use the quality slider to find the right balance - lower quality means smaller files. The estimated output size is shown before you process.'
+					'Typically 50-90% depending on quality settings and the original video. Use the quality slider to balance size and quality. The estimated output size shows before you process.'
 			},
 			{
 				question: 'Will compression reduce video quality?',
 				answer:
-					'Yes, compression trades some quality for smaller file size. However, with moderate compression settings (CRF 23-28), the quality loss is often imperceptible for most uses like sharing on social media or via messaging apps. You can preview and adjust settings to find your preferred balance.'
+					'Yes, but moderate settings (CRF 23-28) often show no visible loss for sharing on social media or messaging. Adjust the slider to find your preferred balance.'
 			},
 			{
 				question: 'Why does compression sometimes fail?',
 				answer:
-					'Compression requires significant browser memory, especially for large or high-resolution videos. If compression fails, try: trimming to a shorter segment first, using higher compression (lower quality), or processing a lower-resolution version. Very large 4K videos may exceed browser limits.'
+					'Compression needs significant browser memory. For large or 4K videos: trim to a shorter segment first, increase compression, or reduce resolution. Very large files may exceed browser limits.'
 			},
 			{
 				question: 'Is my video private when compressing?',
 				answer:
-					'Your video never leaves your device. All compression happens locally in your browser using WebAssembly technology. No data is uploaded to any server, and your video remains completely private.'
+					'Yes. All compression happens in your browser. Nothing is uploaded to any server.'
 			}
 		]
 	},
@@ -167,7 +167,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		h1: 'Reduce Video File Size Online',
 		tagline: 'Shrink video files quickly - no upload, 100% private',
 		introParagraph:
-			"Need to make your video smaller? Use compression to reduce quality slightly, or reduce resolution to shrink dimensions - or both for maximum size reduction. See the estimated file size before processing, so you know exactly what you'll get.",
+			"Shrink your video for storage or email. Use compression, reduce resolution, or both. The estimated output size shows before you process.",
 		primaryFeature: 'resize',
 		defaultFeatures: {
 			compress: true,
@@ -177,22 +177,22 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'What is the best way to reduce video file size?',
 				answer:
-					'The most effective methods are: 1) Trim to keep only the part you need, 2) Reduce resolution (e.g., from 1080p to 720p), 3) Enable compression. Combining these can reduce file size by 90% or more while keeping acceptable quality.'
+					'1) Trim to keep only what you need. 2) Reduce resolution (e.g., 1080p to 720p). 3) Enable compression. Combining these can cut size by 90% or more.'
 			},
 			{
 				question: 'How much smaller can I make my video?',
 				answer:
-					'It depends on the original video and your settings. Reducing resolution to 50% alone cuts file size by ~75%. Adding compression can reduce it further. The estimated output size shows before you process, so you can adjust settings to meet your target.'
+					'It depends on the original video and your settings. Reducing resolution to 50% alone cuts size by ~75%. Adding compression reduces it further. The estimated size shows before you process.'
 			},
 			{
 				question: "Why won't my video fit in an email attachment?",
 				answer:
-					'Email services typically limit attachments to 25MB. To fit your video, try: reducing resolution to 480p or 720p, enabling compression with higher settings, and trimming to keep only essential content. Check the estimated size to ensure it fits.'
+					'Email limits attachments to ~25MB. Try: reduce resolution to 720p or 480p, enable compression, and trim to essentials. The estimated size shows before you process.'
 			},
 			{
 				question: 'Will reducing size affect video quality?',
 				answer:
-					'Yes, reducing file size involves trade-offs. Lowering resolution makes the video smaller in dimensions. Compression reduces quality to save space. For sharing via messaging or social media, moderate reduction is usually unnoticeable. For archival or professional use, keep original quality.'
+					'Yes. Lower resolution shrinks dimensions; compression reduces quality. For sharing, moderate reduction is usually fine. For archival use, keep original quality.'
 			}
 		]
 	},
@@ -207,7 +207,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		h1: 'Make Video Smaller',
 		tagline: 'Quickly shrink your video file - no upload required',
 		introParagraph:
-			"Need a smaller video file? You're in the right place. Upload your video and use our simple tools to reduce the file size. Compress quality, reduce resolution, or both - and see the estimated size before you download. Everything happens in your browser, so your video stays private.",
+			"Need a smaller video to share? Compress quality, reduce resolution, or both. See the estimated size before you download. Everything happens in your browser — your video stays private.",
 		primaryFeature: 'resize',
 		defaultFeatures: {
 			compress: true,
@@ -217,7 +217,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'How do I make my video smaller?',
 				answer:
-					"Select your video file above, then enable 'Compression' and/or 'Resolution Scaling'. Move the compression slider toward 'Smaller File' for more reduction. For resolution, choose a lower preset like 720p or 480p. The estimated output size updates as you adjust settings."
+					"Select your video, then enable 'Compression' and/or 'Resolution Scaling'. Move the slider toward 'Smaller File' or pick 720p/480p. The estimated size updates as you adjust."
 			},
 			{
 				question: 'What is the fastest way to shrink a video?',
@@ -232,7 +232,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'My video is too big to send - what should I do?',
 				answer:
-					'Most messaging apps and email limit file sizes. Use our tools to: 1) Trim out any unnecessary parts, 2) Reduce resolution to 720p or lower, 3) Enable compression. Check the estimated size to ensure it fits your limit (usually 25MB for email, 8-16MB for messaging apps).'
+					'Trim unnecessary parts, reduce resolution to 720p or lower, and enable compression. Email is ~25MB; messaging apps are 8-16MB. The estimated size shows before you process.'
 			}
 		]
 	},
@@ -241,13 +241,13 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		slug: 'video-too-big',
 		title: "Video Too Big? Shrink It Free Online - No Upload | Video Shaper",
 		metaDescription:
-			"Video file too large to send or upload? Reduce it for free without uploading to any server. 100% private - videos never leave your device.",
+			"Video too big for email, WhatsApp or Discord? Shrink it for free without uploading. 100% private - videos never leave your device.",
 		keywords: 'video too big, video file too large, video too big for email, video too big for whatsapp, video too big for discord, shrink large video, reduce big video file, compress large video',
 		canonicalPath: '/video-too-big/',
 		h1: 'Video Too Big?',
 		tagline: "Shrink your video to fit any size limit - free and private",
 		introParagraph:
-			"Can't send that video because it's too large? We can help. Upload your video here and use our compression and resize tools to shrink it down. Whether you need to fit an email attachment, send via WhatsApp, or upload to a website with size limits - we've got you covered. And your video never leaves your device.",
+			"Can't send that video? Shrink it to fit email (25MB), WhatsApp (16MB), or Discord (8MB). Use compression and resolution tools. Your video never leaves your device.",
 		primaryFeature: 'resize',
 		defaultFeatures: {
 			compress: true,
@@ -257,22 +257,22 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'My video is too big for email - how do I fix it?',
 				answer:
-					"Most email services limit attachments to 25MB. To shrink your video: 1) Trim to keep only what you need, 2) Set resolution to 720p or 480p, 3) Enable compression. Watch the estimated size until it's under 25MB, then process and download."
+					'Email limits attachments to ~25MB. Trim, set resolution to 720p or 480p, and enable compression. Watch the estimated size until it is under 25MB.'
 			},
 			{
 				question: "Why won't WhatsApp let me send my video?",
 				answer:
-					"WhatsApp limits videos to about 16MB. To fit this limit, you'll need to significantly reduce your video. Try: lowering resolution to 480p, enabling compression with higher settings, and trimming to the essential parts. The estimated size helps you hit the target."
+					"WhatsApp limits videos to ~16MB. Lower resolution to 480p, enable compression, and trim to essentials. The estimated size helps you hit the target."
 			},
 			{
 				question: 'How do I reduce video size for Discord?',
 				answer:
-					'Discord free accounts limit uploads to 8MB (25MB with Nitro). For 8MB, you need aggressive reduction: low resolution (480p or below), high compression, and short duration. For longer videos, consider trimming into shorter clips.'
+					'Discord free accounts limit uploads to 8MB. Use low resolution (480p or below), high compression, and trim to short clips.'
 			},
 			{
 				question: 'Can I make my video smaller without losing too much quality?',
 				answer:
-					"Yes! Start with resolution reduction - going from 1080p to 720p cuts size in half with minimal visible difference. Add light compression (move slider slightly toward 'Smaller File'). Avoid extreme settings unless you really need the smallest possible file."
+					"Yes. Start with resolution: 1080p to 720p cuts size in half with minimal visible difference. Add light compression. Avoid extreme settings unless you need the smallest file."
 			}
 		]
 	},
@@ -281,7 +281,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		slug: 'private-video-editor',
 		title: 'Private Video Editor - Edit Without Uploading | Video Shaper',
 		metaDescription:
-			'Edit videos with complete privacy - no uploads, no servers. Trim, crop, compress, convert all in your browser. Videos never leave your device.',
+			'Edit videos with complete privacy - no uploads, no servers. Trim, crop, compress, convert in your browser. Videos never leave your device.',
 		keywords: 'private video editor, no upload video editor, offline video editor, secure video editor, browser video editor, local video processing, video editor no server, confidential video editing',
 		canonicalPath: '/private-video-editor/',
 		h1: 'Private Video Editor',
@@ -304,7 +304,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'What about the 30MB download when I select a video?',
 				answer:
-					"That's the FFmpeg WebAssembly binary being downloaded TO your browser - not your video being uploaded. This is the video processing engine that runs locally. It's cached after the first download, so future visits are instant."
+					"That's the FFmpeg processing engine downloading to your browser — not your video uploading. It runs locally and is cached for future visits."
 			},
 			{
 				question: 'Why should I trust this over other online editors?',
@@ -319,7 +319,7 @@ export const landingPages: Record<string, LandingPageConfig> = {
 			{
 				question: 'What happens if processing fails? Is any data sent?',
 				answer:
-					'If an error occurs during processing, you will be shown exactly what data would be sent and asked for your explicit consent before anything is transmitted. The error report contains only broad, non-identifying categories: error type (e.g. "memory"), which features were used, video format, an approximate file size range (e.g. "50-100MB"), approximate duration range, and browser family. No filenames, exact file sizes, video content, or personal information is ever included. You can see the exact data and choose to decline — nothing is sent without your approval.'
+					'If an error occurs, you are shown exactly what would be sent and must approve before anything is transmitted. The report includes only broad categories: error type, features used, format, approximate size and duration ranges, and browser. No filenames, exact sizes, or video content. You can see it and decline.'
 			}
 		]
 	}
