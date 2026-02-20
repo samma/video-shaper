@@ -1,8 +1,6 @@
 <script lang="ts">
 	import VideoEditor from '$lib/components/VideoEditor.svelte';
 
-	let title = 'Free Video Shaper';
-
 	// Accordion state for FAQ and Disclaimer (shown below editor when no file selected)
 	let limitationsExpanded: boolean = false;
 	let disclaimerExpanded: boolean = false;
@@ -48,9 +46,10 @@
 		"operatingSystem": "Web Browser",
 		"offers": {
 			"@type": "Offer",
-			"price": "0",
-			"priceCurrency": "USD"
+			"price": "0"
 		},
+		"isAccessibleForFree": true,
+		"browserRequirements": "Requires a modern browser with WebAssembly support",
 		"featureList": [
 			"Trim Videos",
 			"Crop Videos",
@@ -68,12 +67,14 @@
 
 <div class="min-h-screen bg-gray-900 p-3 sm:p-4">
 	<main id="main-content" class="max-w-4xl mx-auto py-4 sm:py-8">
-		<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white mb-2 sm:mb-3">
-			{title}
-		</h1>
-		<p class="text-center text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 sm:mb-8 tracking-wide">
-			Trim, Crop, Compress, Convert, Resize & Adjust Audio in videos - free, no uploads
-		</p>
+		<div class="text-center mb-6 sm:mb-8">
+			<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
+				Free video editor in your browser — no uploads, 100% private
+			</h1>
+			<p class="text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 tracking-wide">
+				Trim, crop, compress, and convert video on your device. Great for WhatsApp/Discord/email size limits, aspect ratios, and format conversions.
+			</p>
+		</div>
 
 		<VideoEditor 
 			showInfoCard={true}
@@ -225,6 +226,14 @@
 					</div>
 				</div>
 			{/if}
+		</div>
+
+		<!-- Share this tool -->
+		<div class="mt-4 sm:mt-6 bg-gray-700 rounded-lg border border-gray-600 p-4 sm:p-6">
+			<h2 class="text-base sm:text-lg font-semibold text-gray-200 mb-2">Share this tool</h2>
+			<p class="text-gray-400 text-sm">
+				Know someone who needs to edit a video privately? Send them this link: <a href="https://video.shaper.samma.no/" class="text-teal-400 hover:text-teal-300 underline">https://video.shaper.samma.no/</a>
+			</p>
 		</div>
 
 		<!-- Disclaimer Card (Collapsible) -->

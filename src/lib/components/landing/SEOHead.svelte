@@ -48,9 +48,10 @@
 		"operatingSystem": "Web Browser",
 		"offers": {
 			"@type": "Offer",
-			"price": "0",
-			"priceCurrency": "USD"
+			"price": "0"
 		},
+		"isAccessibleForFree": true,
+		"browserRequirements": "Requires a modern browser with WebAssembly support",
 		"featureList": [
 			"${config.h1}",
 			"100% Client-Side Processing",

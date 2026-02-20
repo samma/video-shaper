@@ -27,6 +27,7 @@
 	export let showInfoCard: boolean = true;
 	export let showBackButton: boolean = true;
 	export let infoCardContent: 'full' | 'minimal' | 'none' = 'full';
+	export let hasProcessed: boolean = false;
 
 	let ffmpegService: FFmpegService | null = null;
 	let ffmpegError = '';
@@ -561,6 +562,7 @@
 
 			processingProgress = 1;
 			processingStatus = 'Complete';
+			hasProcessed = true;
 			
 			// Track successful video processing (simple count, no metadata)
 			trackEvent('video-process-success');

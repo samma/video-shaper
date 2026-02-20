@@ -29,6 +29,10 @@ export interface LandingPageConfig {
 		audioAdjustment?: boolean;
 	};
 
+	// Best for / Not for block
+	bestFor?: string[];
+	notFor?: string[];
+
 	// FAQ section
 	faqs: FAQ[];
 }
