@@ -11,38 +11,20 @@
 	<p class="text-teal-300 text-sm sm:text-base md:text-lg font-semibold mb-4 tracking-wide">
 		{config.tagline}
 	</p>
-	<p class="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+	<p class="text-gray-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed mb-5">
 		{config.introParagraph}
 	</p>
 
-	{#if config.bestFor || config.notFor}
-		<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
-			{#if config.bestFor}
-				<div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-					<h2 class="text-sm font-semibold text-green-400 uppercase tracking-wide mb-3">Best for</h2>
-					<ul class="space-y-2">
-						{#each config.bestFor as item}
-							<li class="flex items-start gap-2 text-sm text-gray-300">
-								<span class="text-green-400 mt-0.5 shrink-0">✓</span>
-								<span>{item}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
-			{#if config.notFor}
-				<div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-					<h2 class="text-sm font-semibold text-red-400 uppercase tracking-wide mb-3">Not for</h2>
-					<ul class="space-y-2">
-						{#each config.notFor as item}
-							<li class="flex items-start gap-2 text-sm text-gray-300">
-								<span class="text-red-400 mt-0.5 shrink-0">✗</span>
-								<span>{item}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
+	{#if config.bestFor && config.bestFor.length > 0}
+		<div class="flex flex-wrap justify-center gap-2">
+			{#each config.bestFor as item}
+				<span class="inline-flex items-center gap-1.5 bg-gray-800 border border-gray-700 hover:border-teal-600 rounded-full px-3.5 py-1.5 text-xs sm:text-sm text-gray-300 transition-colors">
+					<svg class="w-3.5 h-3.5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+					</svg>
+					{item}
+				</span>
+			{/each}
 		</div>
 	{/if}
 </div>

@@ -399,26 +399,21 @@ export const landingPages: Record<string, LandingPageConfig> = {
 		slug: 'private-video-editor',
 		title: 'Private Video Editor — Videos Never Leave Your Device | Video Shaper',
 		metaDescription:
-			'Edit videos with complete privacy — no uploads, no accounts, no servers. Trim, crop, compress, convert in your browser. Videos never leave your device.',
+			'Edit videos privately in your browser — no uploads, no account, no servers. Trim, crop, compress, and convert video files locally. 100% verifiable privacy.',
 		keywords:
 			'private video editor, no upload video editor, offline video editor, secure video editor, browser video editor, local video processing, video editor no server, confidential video editing',
 		canonicalPath: '/private-video-editor/',
 		h1: 'Private video editor — videos never leave your device',
 		tagline: 'Everything happens locally in your browser. No accounts. No uploads.',
 		introParagraph:
-			"Worried about uploading personal videos to online editors? With Video Shaper, you don't have to. Every edit — trimming, cropping, compressing, converting — happens entirely in your browser. Your videos are never uploaded to any server. No accounts, no cloud storage, no sign-up required.",
+			'Every edit — trimming, cropping, compressing, converting — runs entirely in your browser. Your video is never sent to any server.',
 		primaryFeature: 'privacy',
 		defaultFeatures: {},
 		bestFor: [
-			'Editing sensitive or personal videos without cloud exposure',
-			'Working with confidential footage (medical, legal, personal)',
-			'Users who want to verify privacy themselves (open source, checkable in DevTools)',
-			'Editing without creating an account or accepting terms of service'
-		],
-		notFor: [
-			'Professional multi-track editing or effects',
-			'Collaboration features or shared projects',
-			'Very large files on low-end devices (processing is CPU-intensive)'
+			'No uploads, ever',
+			'No account required',
+			'Verifiable in DevTools',
+			'Works offline',
 		],
 		faqs: [
 			{
